@@ -3,10 +3,10 @@ import type { TransitionStage } from '../types/player';
 import type { SpotifyTrack } from '../services/spotifyService';
 
 const STAGE_DURATIONS: Partial<Record<TransitionStage, number>> = {
-  'eject': 600,
+  'eject': 300,
   'jacket-enter': 800,
   'disc-emerge': 700,
-  'disc-place': 600,
+  'disc-place': 900,
 };
 
 interface UseTrackTransitionReturn {
@@ -33,16 +33,6 @@ export function useTrackTransition(
     }
   }, []);
 
-  const advanceAfter = useCallback(
-    (nextStage: TransitionStage, duration: number) => {
-      clearTimer();
-      timerRef.current = setTimeout(() => {
-        setStage(nextStage);
-      }, duration);
-    },
-    [clearTimer]
-  );
-
   // React to track changes
   useEffect(() => {
     const newTrackId = currentTrack?.id ?? null;
@@ -57,10 +47,8 @@ export function useTrackTransition(
     if (!newTrackId) {
       loadedTrackIdRef.current = null;
       if (oldTrackId) {
-        // Had a disc loaded → eject
+        // Had a disc loaded → quick fade then empty
         setStage('eject');
-        advanceAfter('empty', STAGE_DURATIONS['eject']!);
-        // Clear tracks after eject
         timerRef.current = setTimeout(() => {
           setJacketTrack(null);
           setDiscTrack(null);
@@ -74,37 +62,24 @@ export function useTrackTransition(
       return;
     }
 
-    // New track arriving
+    // New track arriving — immediately clear old visuals and start fresh
     loadedTrackIdRef.current = newTrackId;
 
-    if (oldTrackId) {
-      // Eject old disc first, then load new
-      setStage('eject');
-      timerRef.current = setTimeout(() => {
-        startLoadSequence(currentTrack!);
-      }, STAGE_DURATIONS['eject']!);
-    } else {
-      // No old disc, start loading directly
-      startLoadSequence(currentTrack!);
-    }
+    setJacketTrack(currentTrack!);
+    setDiscTrack(currentTrack!);
+    setStage('jacket-enter');
 
-    function startLoadSequence(track: SpotifyTrack) {
-      setJacketTrack(track);
-      setDiscTrack(track);
-      setStage('jacket-enter');
+    timerRef.current = setTimeout(() => {
+      setStage('disc-emerge');
 
       timerRef.current = setTimeout(() => {
-        setStage('disc-emerge');
+        setStage('disc-place');
 
         timerRef.current = setTimeout(() => {
-          setStage('disc-place');
-
-          timerRef.current = setTimeout(() => {
-            setStage(isPlaying ? 'playing' : 'paused');
-          }, STAGE_DURATIONS['disc-place']!);
-        }, STAGE_DURATIONS['disc-emerge']!);
-      }, STAGE_DURATIONS['jacket-enter']!);
-    }
+          setStage(isPlaying ? 'playing' : 'paused');
+        }, STAGE_DURATIONS['disc-place']!);
+      }, STAGE_DURATIONS['disc-emerge']!);
+    }, STAGE_DURATIONS['jacket-enter']!);
 
     return () => clearTimer();
     // eslint-disable-next-line react-hooks/exhaustive-deps

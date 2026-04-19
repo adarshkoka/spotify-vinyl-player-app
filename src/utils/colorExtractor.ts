@@ -1,0 +1,195 @@
+export interface ExtractedColors {
+  primary: string;
+  secondary: string;
+  accent: string;
+  dark: string;
+}
+
+const DEFAULT_COLORS: ExtractedColors = {
+  primary: '#1a1a2e',
+  secondary: '#16213e',
+  accent: '#0f3460',
+  dark: '#0a0a1a',
+};
+
+/**
+ * Extracts diverse dominant colors from an image by k-means-style clustering.
+ * Returns 4 colors (dark, primary, secondary, accent) for rich gradients.
+ */
+export function extractColors(imageUrl: string): Promise<ExtractedColors> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const size = 64;
+      canvas.width = size;
+      canvas.height = size;
+
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      if (!ctx) {
+        resolve(DEFAULT_COLORS);
+        return;
+      }
+
+      ctx.drawImage(img, 0, 0, size, size);
+      const imageData = ctx.getImageData(0, 0, size, size).data;
+
+      // Collect all opaque pixels
+      const pixels: [number, number, number][] = [];
+      for (let i = 0; i < imageData.length; i += 4) {
+        if (imageData[i + 3] < 128) continue;
+        pixels.push([imageData[i], imageData[i + 1], imageData[i + 2]]);
+      }
+
+      if (pixels.length < 10) {
+        resolve(DEFAULT_COLORS);
+        return;
+      }
+
+      // Simple k-means with 5 clusters to find diverse colors
+      const clusters = kMeans(pixels, 5, 10);
+
+      // Sort clusters by population (largest first), then pick diverse ones
+      clusters.sort((a, b) => b.count - a.count);
+
+      // Get the top colors, ensuring diversity by filtering near-duplicates
+      const diverse = selectDiverse(clusters.map(c => c.center), 4);
+
+      // Sort by brightness: darkest first
+      diverse.sort((a, b) => brightness(a) - brightness(b));
+
+      // Darken all colors to be suitable as backgrounds
+      const colors = diverse.map(c => darken(c, 0.35));
+
+      resolve({
+        dark: toRgb(colors[0]),
+        primary: toRgb(colors[1] || colors[0]),
+        secondary: toRgb(colors[2] || colors[1] || colors[0]),
+        accent: toRgb(colors[3] || colors[2] || colors[1] || colors[0]),
+      });
+    };
+
+    img.onerror = () => resolve(DEFAULT_COLORS);
+    img.src = imageUrl;
+  });
+}
+
+interface Cluster {
+  center: [number, number, number];
+  count: number;
+}
+
+function kMeans(
+  pixels: [number, number, number][],
+  k: number,
+  iterations: number
+): Cluster[] {
+  // Initialize centers by sampling evenly spaced pixels
+  const step = Math.max(1, Math.floor(pixels.length / k));
+  let centers: [number, number, number][] = [];
+  for (let i = 0; i < k; i++) {
+    centers.push([...pixels[Math.min(i * step, pixels.length - 1)]]);
+  }
+
+  let assignments = new Array(pixels.length).fill(0);
+
+  for (let iter = 0; iter < iterations; iter++) {
+    // Assign pixels to nearest center
+    for (let i = 0; i < pixels.length; i++) {
+      let minDist = Infinity;
+      let bestCluster = 0;
+      for (let c = 0; c < centers.length; c++) {
+        const d = colorDist(pixels[i], centers[c]);
+        if (d < minDist) {
+          minDist = d;
+          bestCluster = c;
+        }
+      }
+      assignments[i] = bestCluster;
+    }
+
+    // Recalculate centers
+    const sums: [number, number, number][] = Array.from({ length: k }, () => [0, 0, 0]);
+    const counts = new Array(k).fill(0);
+
+    for (let i = 0; i < pixels.length; i++) {
+      const c = assignments[i];
+      sums[c][0] += pixels[i][0];
+      sums[c][1] += pixels[i][1];
+      sums[c][2] += pixels[i][2];
+      counts[c]++;
+    }
+
+    for (let c = 0; c < k; c++) {
+      if (counts[c] > 0) {
+        centers[c] = [
+          Math.round(sums[c][0] / counts[c]),
+          Math.round(sums[c][1] / counts[c]),
+          Math.round(sums[c][2] / counts[c]),
+        ];
+      }
+    }
+  }
+
+  // Build final clusters
+  const counts = new Array(k).fill(0);
+  for (let i = 0; i < assignments.length; i++) {
+    counts[assignments[i]]++;
+  }
+
+  return centers.map((center, i) => ({ center, count: counts[i] }));
+}
+
+function selectDiverse(
+  colors: [number, number, number][],
+  count: number
+): [number, number, number][] {
+  if (colors.length <= count) return colors;
+
+  const result: [number, number, number][] = [colors[0]]; // Start with most popular
+
+  while (result.length < count) {
+    let bestColor: [number, number, number] | null = null;
+    let bestMinDist = -1;
+
+    for (const color of colors) {
+      // Skip if already selected
+      if (result.some(r => colorDist(r, color) < 30)) continue;
+
+      // Find min distance to any already-selected color
+      const minDist = Math.min(...result.map(r => colorDist(r, color)));
+      if (minDist > bestMinDist) {
+        bestMinDist = minDist;
+        bestColor = color;
+      }
+    }
+
+    if (bestColor) {
+      result.push(bestColor);
+    } else {
+      break;
+    }
+  }
+
+  return result;
+}
+
+function colorDist(a: [number, number, number], b: [number, number, number]): number {
+  return Math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2);
+}
+
+function brightness([r, g, b]: [number, number, number]): number {
+  return 0.299 * r + 0.587 * g + 0.114 * b;
+}
+
+function darken([r, g, b]: [number, number, number], factor: number): [number, number, number] {
+  return [Math.round(r * factor), Math.round(g * factor), Math.round(b * factor)];
+}
+
+function toRgb([r, g, b]: [number, number, number]): string {
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+export { DEFAULT_COLORS };

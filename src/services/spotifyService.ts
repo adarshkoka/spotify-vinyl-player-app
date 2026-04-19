@@ -113,3 +113,11 @@ export async function pausePlayback(): Promise<void> {
 export async function resumePlayback(): Promise<void> {
   await spotifyApiCall<void>('me/player/play', { method: 'PUT' });
 }
+
+export async function skipToNext(): Promise<void> {
+  await spotifyApiCall<void>('me/player/next', { method: 'POST' });
+}
+
+export async function skipToPrevious(): Promise<void> {
+  await spotifyApiCall<void>('me/player/previous', { method: 'POST' });
+}

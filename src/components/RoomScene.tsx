@@ -1,16 +1,28 @@
 import React from 'react';
 
-interface RoomSceneProps {
-  children: React.ReactNode;
+interface GradientColors {
+  primary: string;
+  secondary: string;
+  accent: string;
+  dark: string;
 }
 
-const RoomScene: React.FC<RoomSceneProps> = ({ children }) => {
+interface RoomSceneProps {
+  children: React.ReactNode;
+  gradientColors?: GradientColors;
+}
+
+const RoomScene: React.FC<RoomSceneProps> = ({ children, gradientColors }) => {
+  const bgStyle = gradientColors
+    ? {
+        background: `linear-gradient(160deg, ${gradientColors.dark} 0%, ${gradientColors.primary} 30%, ${gradientColors.secondary} 60%, ${gradientColors.accent} 100%)`,
+      }
+    : undefined;
+
   return (
     <div className="room-scene">
-      {/* Background layer — simple gradient for now, slot for future illustrated backgrounds */}
-      <div className="room-background" />
+      <div className="room-background" style={bgStyle} />
 
-      {/* Foreground content (record player assembly) */}
       <div className="room-content">
         {children}
       </div>

@@ -23,19 +23,27 @@
 }
 
 @keyframes disc-emerge {
-  from { transform: translateX(0); }
-  to   { transform: translateX(110%); }
+  from { transform: translateX(-40px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
 }
 
 @keyframes disc-place {
-  /* Moves from transition-area position to platter center */
-  from { opacity: 1; }
-  to   { opacity: 1; }
+  from {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-275px) scale(2.8);
+    opacity: 0;
+  }
 }
 
 @keyframes eject-up {
-  from { transform: translateY(0) scale(1); opacity: 1; }
-  to   { transform: translateY(-60px) scale(0.85); opacity: 0; }
+  from { opacity: 1; }
+  to   { opacity: 0; }
 }
 
 /* ============================
@@ -56,6 +64,7 @@
   position: absolute;
   inset: 0;
   background: linear-gradient(160deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%);
+  transition: background 1.5s ease;
   z-index: 0;
 }
 
@@ -65,7 +74,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
   width: 100%;
   max-width: 500px;
   padding: 1rem;
@@ -81,8 +90,6 @@
   flex-direction: column;
   align-items: center;
   width: 100%;
-
-  margin-bottom: .5rem; 
   margin-top: 2rem;
 }
 
@@ -212,6 +219,7 @@
   overflow: hidden;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
   flex-shrink: 0;
+  transition: transform 0.4s ease, opacity 0.3s ease;
 }
 
 .jacket-face {
@@ -254,15 +262,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  
-  height: auto; 
-  
-  margin-bottom: 0.5rem; 
-  
-  margin-top: 1.5rem;
+  width: 100%;
+  height: 160px;
+  margin-top: 1rem;
   overflow: visible;
   z-index: 10;
-  width: 100%;
+  pointer-events: none;
 }
 
 /* Stage-specific animations for jacket */
@@ -270,7 +275,11 @@
   animation: jacket-slide-in 0.8s ease-out forwards;
 }
 
-.album-jacket.stage-disc-emerge,
+.album-jacket.stage-disc-emerge {
+  transform: translateX(-25%);
+  opacity: 1;
+}
+
 .album-jacket.stage-disc-place {
   transform: translateX(0);
   opacity: 1;
@@ -280,11 +289,10 @@
 .album-jacket.stage-paused {
   opacity: 1;
   transform: translateX(0);
-  transition: opacity 0.3s ease;
 }
 
 .album-jacket.stage-eject {
-  animation: eject-up 0.6s ease-in forwards;
+  animation: eject-up 0.3s ease-in forwards;
 }
 
 /* Stage-specific animations for disc during transition */
@@ -299,11 +307,11 @@
   position: absolute;
   width: 100px;
   aspect-ratio: 1;
-  animation: eject-up 0.6s ease-in reverse forwards;
+  animation: disc-place 0.9s ease-in forwards;
 }
 
 .disc-transitioning.stage-eject {
-  animation: eject-up 0.6s ease-in forwards;
+  animation: eject-up 0.3s ease-in forwards;
 }
 
 /* Disc seated on platter */
@@ -321,7 +329,6 @@
   padding: 0 0 0.75rem 0;
   max-width: 360px;
   width: 100%;
-  margin-top: -2rem;
 }
 
 .song-title {
@@ -341,6 +348,59 @@
   text-overflow: ellipsis;
 }
 
+.song-album {
+  font-size: 0.75rem;
+  color: #888;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 0.1rem;
+}
+
+/* ============================
+   Player Controls
+   ============================ */
+
+.player-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 0.25rem 0;
+}
+
+.control-btn {
+  background: transparent;
+  border: none;
+  color: #b3b3b3;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.control-btn:hover {
+  color: #fff;
+  transform: scale(1.1);
+}
+
+.control-btn:active {
+  transform: scale(0.95);
+}
+
+.control-btn-main {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.7rem;
+}
+
+.control-btn-main:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
 /* ============================
    Playback indicator
    ============================ */
@@ -358,17 +418,21 @@
    ============================ */
 
 .btn-logout {
+  position: fixed;
+  bottom: 0.75rem;
+  right: 0.75rem;
+  z-index: 20;
   background: transparent;
-  border: 1px solid #b3b3b3;
-  color: #b3b3b3;
-  padding: 0.4rem 1.2rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.35);
+  padding: 0.2rem 0.6rem;
   border-radius: 9999px;
-  font-size: 0.8rem;
+  font-size: 0.6rem;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .btn-logout:hover {
-  border-color: #fff;
-  color: #fff;
+  border-color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.7);
 }

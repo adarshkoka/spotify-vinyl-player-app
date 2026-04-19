@@ -3,6 +3,8 @@ import {
   getCurrentlyPlayingSong,
   pausePlayback,
   resumePlayback,
+  skipToNext,
+  skipToPrevious,
   type SpotifyTrack,
   type CurrentlyPlayingResponse,
 } from '../services/spotifyService';
@@ -18,6 +20,8 @@ interface UseSpotifyPlaybackReturn {
   isLoading: boolean;
   error: string | null;
   togglePlayback: () => Promise<void>;
+  skipNext: () => Promise<void>;
+  skipBack: () => Promise<void>;
 }
 
 export function useSpotifyPlayback(
@@ -92,11 +96,31 @@ export function useSpotifyPlayback(
     }
   }, [playbackData?.is_playing, fetchPlayback]);
 
+  const skipNext = useCallback(async () => {
+    try {
+      await skipToNext();
+      setTimeout(fetchPlayback, 300);
+    } catch (err) {
+      console.error('Failed to skip to next:', err);
+    }
+  }, [fetchPlayback]);
+
+  const skipBack = useCallback(async () => {
+    try {
+      await skipToPrevious();
+      setTimeout(fetchPlayback, 300);
+    } catch (err) {
+      console.error('Failed to skip to previous:', err);
+    }
+  }, [fetchPlayback]);
+
   return {
     track: playbackData?.item ?? null,
     isPlaying: playbackData?.is_playing ?? false,
     isLoading,
     error,
     togglePlayback,
+    skipNext,
+    skipBack,
   };
 }
