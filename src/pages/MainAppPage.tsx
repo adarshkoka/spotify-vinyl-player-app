@@ -46,9 +46,9 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
         )}
 
         {/* Logout */}
-        {/* <button onClick={onLogout} className="btn-logout">
+        <button onClick={onLogout} className="btn-logout">
           Logout
-        </button> */}
+        </button>
       </div>
     </RoomScene>
   );
