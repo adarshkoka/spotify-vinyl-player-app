@@ -4,7 +4,7 @@ import tailwindcss from '@tailwindcss/vite' // Import @tailwindcss/vite
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: "/spotify-pixel-art-gen-app/",
+  base: "/spotify-vinyl-player-app/",
   plugins: [
     react(),
     tailwindcss() // Add tailwindcss() to the plugins array

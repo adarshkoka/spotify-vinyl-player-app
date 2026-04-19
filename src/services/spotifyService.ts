@@ -77,6 +77,8 @@ export interface SpotifyArtist {
 }
 
 export interface SpotifyTrack {
+  id: string;
+  uri: string;
   name: string;
   album: SpotifyAlbum;
   artists: SpotifyArtist[];
@@ -102,4 +104,12 @@ export async function getCurrentlyPlayingSong(): Promise<CurrentlyPlayingRespons
     // For now, returning null if there's an error or if no song is playing (204 handled by spotifyApiCall)
     return null;
   }
+}
+
+export async function pausePlayback(): Promise<void> {
+  await spotifyApiCall<void>('me/player/pause', { method: 'PUT' });
+}
+
+export async function resumePlayback(): Promise<void> {
+  await spotifyApiCall<void>('me/player/play', { method: 'PUT' });
 }

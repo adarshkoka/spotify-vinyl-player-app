@@ -4,19 +4,346 @@
 @layer base {
   body {
     @apply bg-spotify-black text-spotify-text;
+    overflow: hidden;
   }
-  /* Add other global styles or component base styles here if needed */
 }
 
-@layer components {
-  .custom-select-arrow {
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23FFFFFF'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd' /%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 0.75rem center; /* Tailwind: bg-right-3 */
-    background-size: 1.25em 1.25em;    /* Tailwind: bg-[length:1.25em_1.25em] */
-    padding-right: 2.5rem;             /* Tailwind: pr-10 */
-  }
+/* ============================
+   Keyframes
+   ============================ */
+
+@keyframes vinyl-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes jacket-slide-in {
+  from { transform: translateX(-120%); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes disc-emerge {
+  from { transform: translateX(0); }
+  to   { transform: translateX(110%); }
+}
+
+@keyframes disc-place {
+  /* Moves from transition-area position to platter center */
+  from { opacity: 1; }
+  to   { opacity: 1; }
+}
+
+@keyframes eject-up {
+  from { transform: translateY(0) scale(1); opacity: 1; }
+  to   { transform: translateY(-60px) scale(0.85); opacity: 0; }
+}
+
+/* ============================
+   Room Scene
+   ============================ */
+
+.room-scene {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.room-background {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(160deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%);
+  z-index: 0;
+}
+
+.room-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 500px;
+  padding: 1rem;
+}
+
+/* ============================
+   Record Player
+   ============================ */
+
+.record-player {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.turntable-base {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  max-width: 360px;
+  background: linear-gradient(145deg, #2a2a2a 0%, #1a1a1a 100%);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.turntable-platter {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, #333 0%, #222 60%, #1a1a1a 100%);
+  box-shadow:
+    inset 0 0 20px rgba(0, 0, 0, 0.5),
+    0 0 0 3px #444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.platter-spindle {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #666;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+}
+
+/* ============================
+   Vinyl Disc
+   ============================ */
+
+.vinyl-disc {
+  position: relative;
+  width: 92%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    #111 0%,
+    #1a1a1a 35%,
+    #111 36%,
+    #1a1a1a 55%,
+    #111 56%,
+    #1a1a1a 70%,
+    #111 71%,
+    #1a1a1a 85%,
+    #111 86%,
+    #0d0d0d 100%
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  outline: none;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  will-change: transform;
+}
+
+.vinyl-spinning {
+  animation: vinyl-spin 1.8s linear infinite;
+}
+
+.vinyl-paused {
+  animation: vinyl-spin 1.8s linear infinite paused;
+}
+
+.vinyl-grooves {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: repeating-radial-gradient(
+    circle at center,
+    transparent 0px,
+    transparent 3px,
+    rgba(255, 255, 255, 0.015) 3px,
+    rgba(255, 255, 255, 0.015) 4px
+  );
+  pointer-events: none;
+}
+
+.vinyl-label {
+  width: 36%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background-color: #333;
+  z-index: 1;
+  box-shadow:
+    0 0 0 2px rgba(0, 0, 0, 0.4),
+    0 0 8px rgba(0, 0, 0, 0.3);
+}
+
+.vinyl-spindle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #555;
+  z-index: 2;
+}
+
+/* ============================
+   Album Jacket
+   ============================ */
+
+.album-jacket {
+  position: relative;
+  width: 140px;
+  aspect-ratio: 1;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  flex-shrink: 0;
+}
+
+.jacket-face {
+  width: 100%;
+  height: 100%;
+  background-color: #2a2a2a;
+}
+
+.jacket-slit {
+  position: absolute;
+  top: 10%;
+  right: 0;
+  width: 4px;
+  height: 80%;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 2px 0 0 2px;
+}
+
+/* ============================
+   Transition Area
+   ============================ */
+
+.transition-area {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 0;
+  overflow: visible;
+  z-index: 10;
+}
+
+/* Stage-specific animations for jacket */
+.album-jacket.stage-jacket-enter {
+  animation: jacket-slide-in 0.8s ease-out forwards;
+}
+
+.album-jacket.stage-disc-emerge,
+.album-jacket.stage-disc-place {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.album-jacket.stage-playing,
+.album-jacket.stage-paused {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 0.3s ease;
+}
+
+.album-jacket.stage-eject {
+  animation: eject-up 0.6s ease-in forwards;
+}
+
+/* Stage-specific animations for disc during transition */
+.disc-transitioning.stage-disc-emerge {
+  position: absolute;
+  width: 100px;
+  aspect-ratio: 1;
+  animation: disc-emerge 0.7s ease-out forwards;
+}
+
+.disc-transitioning.stage-disc-place {
+  position: absolute;
+  width: 100px;
+  aspect-ratio: 1;
+  animation: eject-up 0.6s ease-in reverse forwards;
+}
+
+.disc-transitioning.stage-eject {
+  animation: eject-up 0.6s ease-in forwards;
+}
+
+/* Disc seated on platter */
+.disc-on-platter {
+  width: 92%;
+  aspect-ratio: 1;
+}
+
+/* ============================
+   Song Info Overlay
+   ============================ */
+
+.song-info {
+  text-align: center;
+  padding: 0.75rem 0;
+  max-width: 360px;
+  width: 100%;
+}
+
+.song-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.song-artist {
+  font-size: 0.85rem;
+  color: #b3b3b3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ============================
+   Playback indicator
+   ============================ */
+
+.playback-status {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #1DB954;
+  opacity: 0.8;
+}
+
+/* ============================
+   Utilities
+   ============================ */
+
+.btn-logout {
+  background: transparent;
+  border: 1px solid #b3b3b3;
+  color: #b3b3b3;
+  padding: 0.4rem 1.2rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-logout:hover {
+  border-color: #fff;
+  color: #fff;
 }

@@ -21,7 +21,7 @@ const LoginPage: React.FC = () => {
     localStorage.setItem('spotify_auth_state', state);
 
     const codeChallenge = await generateCodeChallenge(codeVerifier);
-    const scope = 'user-read-currently-playing'; // Add other scopes as needed
+    const scope = 'user-read-currently-playing user-read-playback-state user-modify-playback-state';
 
     const authUrl = new URL("https://accounts.spotify.com/authorize");
     const params = {
@@ -44,10 +44,10 @@ const LoginPage: React.FC = () => {
         {/* <img src="/spotify-logo-pixel.png" alt="Spotify Pixelated Logo" className="w-24 h-24 mx-auto mb-6" /> */}
         <h1 
           className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6 md:mb-8 text-center bg-gradient-to-r from-spotify-green to-spotify-green-hover bg-clip-text text-transparent drop-shadow-sm">
-          Spotify Pixel Art Generator
+          Spotify Vinyl Player
         </h1>
         <p className="text-spotify-text-subdued mb-8 text-sm sm:text-base">
-          Connect your Spotify account to generate pixel art from your currently playing song.
+          Connect your Spotify account to visualize your music on a virtual record player.
         </p>
         <button
           onClick={handleLogin}
@@ -56,11 +56,11 @@ const LoginPage: React.FC = () => {
           Login with Spotify
         </button>
         <p className="text-xs text-spotify-text-subdued mt-8">
-          This application uses the Spotify Web API to access your currently playing song information. We do not store your Spotify data.
+          This application uses the Spotify Web API to access your playback information. We do not store your Spotify data.
         </p>
       </div>
       <footer className="absolute bottom-4 text-center w-full text-xs text-spotify-text-subdued">
-        Spotify Pixel Art Generator - A fun project.
+        Spotify Vinyl Player
       </footer>
     </div>
   );
