@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useSpotifyPlayback } from '../hooks/useSpotifyPlayback';
 import { useTrackTransition } from '../hooks/useTrackTransition';
 import { usePlayerColors } from '../hooks/usePlayerColors';
+import { useTracklistPanel } from '../hooks/useTracklistPanel';
 import RoomScene from '../components/RoomScene';
 import RecordPlayer from '../components/RecordPlayer';
 import PlayerControls from '../components/PlayerControls';
@@ -15,10 +16,11 @@ interface MainAppPageProps {
 }
 
 const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
-  const { track, isPlaying, isLoading, error, togglePlayback, skipNext, skipBack } = useSpotifyPlayback({ pollInterval: SPOTIFY_POLL_INTERVAL });
+  const { track, isPlaying, isLoading, error, contextUri, contextType, togglePlayback, skipNext, skipBack } = useSpotifyPlayback({ pollInterval: SPOTIFY_POLL_INTERVAL });
   const { stage, jacketTrack, discTrack } = useTrackTransition(track, isPlaying);
   const [gradientColors, setGradientColors] = useState<ExtractedColors>(DEFAULT_COLORS);
   const { baseBackground, baseColor, baseMaterial, tonearmColor, tonearmMaterial, setBaseColor, setTonearmColor, applyMaterialPreset } = usePlayerColors();
+  const { isOpen: isTracklistOpen, tracks: tracklistTracks, isLoadingTracks, selectedTrackUri, isShowingAlbum, isSupportedContext, toggleOpen: toggleTracklist, close: closeTracklist, selectTrack, showAlbum, showContext } = useTracklistPanel(contextUri, contextType, track?.album ?? null);
 
   // Extract colors when track changes
   useEffect(() => {
@@ -32,19 +34,20 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
 
   return (
     <RoomScene gradientColors={gradientColors}>
-      <button onClick={onLogout} className="btn-logout">
-        Logout
-      </button>
-
-      <ColorCustomizer
-        baseColor={baseColor}
-        tonearmColor={tonearmColor}
-        baseMaterial={baseMaterial}
-        tonearmMaterial={tonearmMaterial}
-        onSetBaseColor={setBaseColor}
-        onSetTonearmColor={setTonearmColor}
-        onApplyMaterialPreset={applyMaterialPreset}
-      />
+      <div className="bottom-bar">
+        <ColorCustomizer
+          baseColor={baseColor}
+          tonearmColor={tonearmColor}
+          baseMaterial={baseMaterial}
+          tonearmMaterial={tonearmMaterial}
+          onSetBaseColor={setBaseColor}
+          onSetTonearmColor={setTonearmColor}
+          onApplyMaterialPreset={applyMaterialPreset}
+        />
+        <button onClick={onLogout} className="btn-logout">
+          Logout
+        </button>
+      </div>
 
       <div className="flex flex-col items-center w-full" style={{ gap: 'var(--gap-player-to-song, 16px)' }}>
 
@@ -62,22 +65,36 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
             transitionStage={stage}
             onTogglePlayback={togglePlayback}
             baseBackground={baseBackground}
+            baseColor={baseColor}
             baseMaterial={baseMaterial}
             tonearmColor={tonearmColor}
             tonearmMaterial={tonearmMaterial}
+            isTracklistOpen={isTracklistOpen}
+            tracklistTracks={tracklistTracks}
+            isLoadingTracks={isLoadingTracks}
+            currentTrackUri={selectedTrackUri ?? track?.uri ?? null}
+            isPlaylist={isSupportedContext && contextType === 'playlist'}
+            isShowingAlbum={isShowingAlbum}
+            onToggleTracklist={toggleTracklist}
+            onCloseTracklist={closeTracklist}
+            onSelectTrack={selectTrack}
+            onShowAlbum={() => { if (track?.album) showAlbum(track.album.id, track.album.uri); }}
+            onShowContext={showContext}
           />
         </div>
 
         {/* Song info + controls grouped tightly */}
         {track && (
           <div className="flex flex-col items-center w-full" style={{ gap: 'var(--gap-song-to-controls, 8px)' }}>
-            <div className="song-info text-center">
-              <p className="song-title text-xl font-bold" title={track.name}>{track.name}</p>
-              <p className="song-artist text-spotify-text-subdued" title={track.artists.map(a => a.name).join(', ')}>
-                {track.artists.map(a => a.name).join(', ')}
-              </p>
-              <p className="song-album" title={track.album.name}>{track.album.name}</p>
-            </div>
+            {!isTracklistOpen && (
+              <div className="song-info text-center">
+                <p className="song-title text-xl font-bold" title={track.name}>{track.name}</p>
+                <p className="song-artist text-spotify-text-subdued" title={track.artists.map(a => a.name).join(', ')}>
+                  {track.artists.map(a => a.name).join(', ')}
+                </p>
+                <p className="song-album" title={track.album.name}>{track.album.name}</p>
+              </div>
+            )}
 
             <PlayerControls
               isPlaying={isPlaying}

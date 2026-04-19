@@ -1,9 +1,10 @@
 import React from 'react';
 import VinylDisc from './VinylDisc';
 import AlbumJacket from './AlbumJacket';
+import TracklistPanel from './TracklistPanel';
 import Tonearm from './Tonearm';
 import type { TransitionStage } from '../types/player';
-import type { SpotifyTrack } from '../services/spotifyService';
+import type { SpotifyTrack, ContextTrack } from '../services/spotifyService';
 import type { MaterialPreset } from '../hooks/usePlayerColors';
 
 interface RecordPlayerProps {
@@ -14,9 +15,22 @@ interface RecordPlayerProps {
   transitionStage: TransitionStage;
   onTogglePlayback: () => void;
   baseBackground?: string | null;
+  baseColor?: string;
   baseMaterial?: MaterialPreset;
   tonearmColor?: string;
   tonearmMaterial?: MaterialPreset;
+  // Tracklist panel props
+  isTracklistOpen?: boolean;
+  tracklistTracks?: ContextTrack[];
+  isLoadingTracks?: boolean;
+  currentTrackUri?: string | null;
+  isPlaylist?: boolean;
+  isShowingAlbum?: boolean;
+  onToggleTracklist?: () => void;
+  onCloseTracklist?: () => void;
+  onSelectTrack?: (trackUri: string) => void;
+  onShowAlbum?: () => void;
+  onShowContext?: () => void;
 }
 
 function getAlbumArtUrl(track: SpotifyTrack | null): string | null {
@@ -38,9 +52,21 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
   transitionStage,
   onTogglePlayback,
   baseBackground,
+  baseColor = '#222222',
   baseMaterial,
   tonearmColor,
   tonearmMaterial,
+  isTracklistOpen = false,
+  tracklistTracks = [],
+  isLoadingTracks = false,
+  currentTrackUri = null,
+  isPlaylist = false,
+  isShowingAlbum = false,
+  onToggleTracklist,
+  onCloseTracklist,
+  onSelectTrack,
+  onShowAlbum,
+  onShowContext,
 }) => {
   const discArt = getAlbumArtUrl(discTrack);
   const jacketArt = getAlbumArtUrl(jacketTrack);
@@ -91,6 +117,9 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
           <AlbumJacket
             albumArtUrl={jacketArt}
             className={`stage-${transitionStage}`}
+            canOpen={transitionStage !== 'jacket-enter' && transitionStage !== 'eject'}
+            isOpen={isTracklistOpen}
+            onToggleOpen={onToggleTracklist}
           />
         )}
 
@@ -103,6 +132,21 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
           />
         )}
       </div>
+
+      {/* Tracklist panel — expands below transition area */}
+      <TracklistPanel
+        isOpen={isTracklistOpen}
+        tracks={tracklistTracks}
+        isLoading={isLoadingTracks}
+        currentTrackUri={currentTrackUri}
+        accentColor={baseColor}
+        isPlaylist={isPlaylist}
+        isShowingAlbum={isShowingAlbum}
+        onSelectTrack={onSelectTrack ?? (() => {})}
+        onClose={onCloseTracklist ?? (() => {})}
+        onShowAlbum={onShowAlbum}
+        onShowContext={onShowContext}
+      />
     </div>
   );
 };

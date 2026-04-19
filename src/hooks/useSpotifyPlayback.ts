@@ -19,6 +19,8 @@ interface UseSpotifyPlaybackReturn {
   isPlaying: boolean;
   isLoading: boolean;
   error: string | null;
+  contextUri: string | null;
+  contextType: string | null;
   togglePlayback: () => Promise<void>;
   skipNext: () => Promise<void>;
   skipBack: () => Promise<void>;
@@ -119,6 +121,8 @@ export function useSpotifyPlayback(
     isPlaying: playbackData?.is_playing ?? false,
     isLoading,
     error,
+    contextUri: playbackData?.context?.uri ?? null,
+    contextType: playbackData?.context?.type ?? null,
     togglePlayback,
     skipNext,
     skipBack,

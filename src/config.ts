@@ -50,20 +50,32 @@ export const GRADIENT_TRANSITION_DURATION = 1500;
  * song title/artist/album block.
  * Safe range: 0–40px. Above 40px risks pushing controls off screen.
  */
-export const GAP_PLAYER_TO_SONG = 4; //16 was original
+export const GAP_PLAYER_TO_SONG = 0;
 
 /**
  * Vertical gap between the song title/artist/album block and the playback
  * control buttons.
  * Safe range: 0–24px.
  */
-export const GAP_SONG_TO_CONTROLS = 8;
+export const GAP_SONG_TO_CONTROLS = 4;
+
+/**
+ * Vertical gap between the turntable base and the jacket / transition area.
+ * Safe range: 0–24px.
+ */
+export const GAP_BASE_TO_JACKET = 8;
+
+/**
+ * Vertical gap between the jacket and the tracklist panel when open.
+ * Safe range: 0–16px.
+ */
+export const GAP_JACKET_TO_PANEL = 4;
 
 /**
  * Top margin above the record player — breathing room from the top of the page.
  * Safe range: 0–48px.
  */
-export const RECORD_PLAYER_TOP_MARGIN = 32;
+export const RECORD_PLAYER_TOP_MARGIN = 16;
 
 // ─── CSS variable injection ─────────────────────────────────────────────────
 
@@ -85,10 +97,14 @@ export function applyCssVars(): void {
   // Spacing — clamped to safe ranges to prevent overlap or off-screen content
   const gapPlayerToSong = clamp(GAP_PLAYER_TO_SONG, 0, 40, 'GAP_PLAYER_TO_SONG');
   const gapSongToControls = clamp(GAP_SONG_TO_CONTROLS, 0, 24, 'GAP_SONG_TO_CONTROLS');
+  const gapBaseToJacket = clamp(GAP_BASE_TO_JACKET, 0, 24, 'GAP_BASE_TO_JACKET');
+  const gapJacketToPanel = clamp(GAP_JACKET_TO_PANEL, 0, 16, 'GAP_JACKET_TO_PANEL');
   const recordPlayerTopMargin = clamp(RECORD_PLAYER_TOP_MARGIN, 0, 48, 'RECORD_PLAYER_TOP_MARGIN');
 
   root.style.setProperty('--gap-player-to-song', `${gapPlayerToSong}px`);
   root.style.setProperty('--gap-song-to-controls', `${gapSongToControls}px`);
+  root.style.setProperty('--gap-base-to-jacket', `${gapBaseToJacket}px`);
+  root.style.setProperty('--gap-jacket-to-panel', `${gapJacketToPanel}px`);
   root.style.setProperty('--record-player-top-margin', `${recordPlayerTopMargin}px`);
 }
 

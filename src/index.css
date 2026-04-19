@@ -312,7 +312,21 @@
   overflow: hidden;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
   flex-shrink: 0;
-  transition: transform 0.4s ease, opacity 0.3s ease;
+  transition: transform 0.15s ease, opacity 0.3s ease;
+  pointer-events: auto;
+}
+
+.jacket-clickable {
+  cursor: pointer;
+}
+.jacket-clickable:active {
+  transform: scale(0.95);
+}
+
+/* Pressed state when tracklist is open */
+.jacket-pressed {
+  transform: scale(0.95);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
 }
 
 .jacket-face {
@@ -340,6 +354,193 @@
 }
 
 /* ============================
+   Tracklist Panel
+   ============================ */
+
+.tracklist-panel {
+  width: 100%;
+  max-width: 280px;
+  margin: 0 auto;
+  overflow: hidden;
+  pointer-events: none;
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 400ms cubic-bezier(0.25, 0.8, 0.25, 1),
+              margin-top 400ms cubic-bezier(0.25, 0.8, 0.25, 1);
+  margin-top: 0;
+}
+
+.tracklist-panel-open {
+  grid-template-rows: 1fr;
+  pointer-events: auto;
+  margin-top: var(--gap-jacket-to-panel, 8px);
+}
+
+.tracklist-panel-inner {
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(255, 255, 255, 0.015) 3px,
+      rgba(255, 255, 255, 0.015) 4px
+    ),
+    linear-gradient(160deg, #1c1c1c 0%, #181818 50%, #141414 100%);
+  border-radius: 8px;
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.3), 0 4px 20px rgba(0, 0, 0, 0.5);
+  padding: 0;
+  max-height: 180px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header buttons row */
+.tracklist-header-btns {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 5px 8px 2px;
+  flex-shrink: 0;
+}
+
+/* Album / Playlist toggle button */
+.tracklist-toggle-btn {
+  border: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+  line-height: 1.4;
+}
+.tracklist-toggle-btn:hover {
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Close button — subtle circle */
+.tracklist-close-btn {
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: color 0.15s, background 0.15s;
+  padding: 0;
+  flex-shrink: 0;
+}
+.tracklist-close-btn:hover {
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Scrollable track list */
+.tracklist-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+.tracklist-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.tracklist-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 2px;
+}
+
+.tracklist-loading {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 11px;
+  text-align: center;
+  padding: 16px 0;
+}
+
+.tracklist-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  border: none;
+  background: none;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.15s;
+  border-left: 2px solid transparent;
+  width: 100%;
+}
+.tracklist-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.tracklist-item-active {
+  color: #fff;
+}
+.tracklist-item-active .tracklist-name {
+  font-weight: 600;
+}
+
+.tracklist-num {
+  width: 18px;
+  text-align: right;
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 11px;
+}
+
+.tracklist-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.tracklist-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.tracklist-artist {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.35);
+  line-height: 1.3;
+}
+
+.tracklist-dur {
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================
    Transition Area
    ============================ */
 
@@ -350,7 +551,7 @@
   justify-content: center;
   width: 100%;
   height: 160px;
-  margin-top: 1rem;
+  margin-top: var(--gap-base-to-jacket, 16px);
   overflow: visible;
   z-index: 10;
   pointer-events: none;
@@ -536,10 +737,6 @@
    ============================ */
 
 .btn-logout {
-  position: fixed;
-  bottom: 0.75rem;
-  right: 0.75rem;
-  z-index: 20;
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.15);
   color: rgba(255, 255, 255, 0.35);
@@ -548,6 +745,7 @@
   font-size: 0.6rem;
   cursor: pointer;
   transition: all 0.15s ease;
+  line-height: 1;
 }
 
 .btn-logout:hover {
@@ -590,14 +788,20 @@
    ============================ */
 
 .color-customizer {
-  position: fixed;
-  bottom: 0.75rem;
-  right: 4.5rem;
-  z-index: 20;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 0.3rem;
+}
+
+.bottom-bar {
+  position: fixed;
+  bottom: 0.75rem;
+  right: 0.75rem;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .color-btns-row {

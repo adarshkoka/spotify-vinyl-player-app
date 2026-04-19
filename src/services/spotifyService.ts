@@ -68,6 +68,8 @@ export interface SpotifyImage {
 }
 
 export interface SpotifyAlbum {
+  id: string;
+  uri: string;
   name: string;
   images: SpotifyImage[];
 }
@@ -90,7 +92,11 @@ export interface CurrentlyPlayingResponse {
   is_playing: boolean;
   progress_ms: number | null;
   timestamp: number;
-  // Add other fields if needed, like context, device, etc.
+  context?: {
+    type: string;
+    uri: string;
+    href: string;
+  } | null;
 }
 
 export async function getCurrentlyPlayingSong(): Promise<CurrentlyPlayingResponse | null> {
@@ -120,4 +126,74 @@ export async function skipToNext(): Promise<void> {
 
 export async function skipToPrevious(): Promise<void> {
   await spotifyApiCall<void>('me/player/previous', { method: 'POST' });
+}
+
+// --- Context track types ---
+
+export interface ContextTrack {
+  uri: string;
+  name: string;
+  artists: string;
+  track_number: number;
+  duration_ms: number;
+}
+
+interface SpotifyAlbumTracksResponse {
+  items: Array<{
+    uri: string;
+    name: string;
+    artists: SpotifyArtist[];
+    track_number: number;
+    duration_ms: number;
+  }>;
+}
+
+interface SpotifyPlaylistTracksResponse {
+  items: Array<{
+    track: {
+      uri: string;
+      name: string;
+      artists: SpotifyArtist[];
+      track_number: number;
+      duration_ms: number;
+    } | null;
+  }>;
+}
+
+export async function getAlbumTracks(albumId: string): Promise<ContextTrack[]> {
+  const data = await spotifyApiCall<SpotifyAlbumTracksResponse>(
+    `albums/${encodeURIComponent(albumId)}/tracks?limit=50`
+  );
+  return data.items.map(t => ({
+    uri: t.uri,
+    name: t.name,
+    artists: t.artists.map(a => a.name).join(', '),
+    track_number: t.track_number,
+    duration_ms: t.duration_ms,
+  }));
+}
+
+export async function getPlaylistTracks(playlistId: string): Promise<ContextTrack[]> {
+  const data = await spotifyApiCall<SpotifyPlaylistTracksResponse>(
+    `playlists/${encodeURIComponent(playlistId)}/tracks?limit=50&fields=items(track(uri,name,artists(name),track_number,duration_ms))`
+  );
+  return data.items
+    .filter(item => item.track != null)
+    .map(item => {
+      const t = item.track!;
+      return {
+        uri: t.uri,
+        name: t.name,
+        artists: t.artists.map(a => a.name).join(', '),
+        track_number: t.track_number,
+        duration_ms: t.duration_ms,
+      };
+    });
+}
+
+export async function playTrackInContext(contextUri: string, trackUri: string): Promise<void> {
+  await spotifyApiCall<void>('me/player/play', {
+    method: 'PUT',
+    body: { context_uri: contextUri, offset: { uri: trackUri } },
+  });
 }
