@@ -22,9 +22,34 @@
   to   { transform: translateX(0); opacity: 1; }
 }
 
-@keyframes disc-emerge {
-  from { transform: translateX(-40px); opacity: 0; }
-  to   { transform: translateX(0); opacity: 1; }
+@keyframes disc-emerge-out {
+  0% {
+    transform: translateX(15px) translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+  25% {
+    transform: translateX(45px) translateY(-2px);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+  }
+  55% {
+    transform: translateX(90px) translateY(1px);
+    box-shadow: 0 5px 16px rgba(0, 0, 0, 0.45);
+  }
+  100% {
+    transform: translateX(120px) translateY(0);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+  }
+}
+
+@keyframes disc-center-in {
+  0% {
+    transform: translateX(120px) translateY(0);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+  }
+  100% {
+    transform: translateX(0) translateY(0);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  }
 }
 
 @keyframes disc-place {
@@ -64,7 +89,6 @@
   position: absolute;
   inset: 0;
   background: linear-gradient(160deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%);
-  transition: background 1.5s ease;
   z-index: 0;
 }
 
@@ -90,7 +114,7 @@
   flex-direction: column;
   align-items: center;
   width: 100%;
-  margin-top: 2rem;
+  margin-top: var(--record-player-top-margin, 32px);
 }
 
 .turntable-base {
@@ -166,11 +190,11 @@
 }
 
 .vinyl-spinning {
-  animation: vinyl-spin 1.8s linear infinite;
+  animation: vinyl-spin var(--vinyl-spin-duration, 1800ms) linear infinite;
 }
 
 .vinyl-paused {
-  animation: vinyl-spin 1.8s linear infinite paused;
+  animation: vinyl-spin var(--vinyl-spin-duration, 1800ms) linear infinite paused;
 }
 
 .vinyl-grooves {
@@ -236,26 +260,19 @@
   height: 80%;
   background: rgba(0, 0, 0, 0.6);
   border-radius: 2px 0 0 2px;
+  transition: width 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Jacket slit opens during disc emergence */
+.stage-disc-emerge .jacket-slit {
+  width: 7px;
+  background: rgba(30, 30, 30, 0.8);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.4), inset 0 0 4px rgba(60, 60, 60, 0.3);
 }
 
 /* ============================
    Transition Area
    ============================ */
-
-/* .transition-area {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  
-  height: 35%; 
-  
-  margin-top: 2rem;
-  
-  overflow: visible;
-  z-index: 10;
-  width: 100%;
-} */
 
 .transition-area {
   position: relative;
@@ -272,17 +289,31 @@
 
 /* Stage-specific animations for jacket */
 .album-jacket.stage-jacket-enter {
-  animation: jacket-slide-in 0.8s ease-out forwards;
+  animation: jacket-slide-in var(--jacket-enter-duration, 800ms) ease-out forwards;
 }
 
 .album-jacket.stage-disc-emerge {
-  transform: translateX(-25%);
+  transform: translateX(0);
   opacity: 1;
+  z-index: 5;
+}
+
+.album-jacket.stage-disc-center {
+  transform: translateX(0);
+  opacity: 1;
+  z-index: 1;
+}
+
+.album-jacket.stage-disc-rest {
+  transform: translateX(0);
+  opacity: 1;
+  z-index: 1;
 }
 
 .album-jacket.stage-disc-place {
   transform: translateX(0);
   opacity: 1;
+  z-index: 1;
 }
 
 .album-jacket.stage-playing,
@@ -292,7 +323,7 @@
 }
 
 .album-jacket.stage-eject {
-  animation: eject-up 0.3s ease-in forwards;
+  animation: eject-up var(--eject-duration, 300ms) ease-in forwards;
 }
 
 /* Stage-specific animations for disc during transition */
@@ -300,18 +331,37 @@
   position: absolute;
   width: 100px;
   aspect-ratio: 1;
-  animation: disc-emerge 0.7s ease-out forwards;
+  z-index: 1;
+  animation: disc-emerge-out var(--disc-emerge-duration, 750ms) ease-out forwards;
+}
+
+.disc-transitioning.stage-disc-center {
+  position: absolute;
+  width: 100px;
+  aspect-ratio: 1;
+  z-index: 10;
+  animation: disc-center-in var(--disc-center-duration, 750ms) ease-in-out forwards;
+}
+
+.disc-transitioning.stage-disc-rest {
+  position: absolute;
+  width: 100px;
+  aspect-ratio: 1;
+  z-index: 10;
+  transform: translateX(0);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
 }
 
 .disc-transitioning.stage-disc-place {
   position: absolute;
   width: 100px;
   aspect-ratio: 1;
-  animation: disc-place 0.9s ease-in forwards;
+  z-index: 10;
+  animation: disc-place var(--disc-place-duration, 1350ms) ease-in forwards;
 }
 
 .disc-transitioning.stage-eject {
-  animation: eject-up 0.3s ease-in forwards;
+  animation: eject-up var(--eject-duration, 300ms) ease-in forwards;
 }
 
 /* Disc seated on platter */
@@ -326,7 +376,6 @@
 
 .song-info {
   text-align: center;
-  padding: 0 0 0.75rem 0;
   max-width: 360px;
   width: 100%;
 }

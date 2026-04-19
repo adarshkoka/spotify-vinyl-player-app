@@ -52,7 +52,7 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
         </div>
       </div>
 
-      {/* Jacket + transitioning disc area (beside the turntable) */}
+      {/* Jacket + transitioning disc area */}
       <div className="transition-area">
         {showJacket && (
           <AlbumJacket
@@ -61,7 +61,7 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
           />
         )}
 
-        {/* Disc during emergence/placement transition */}
+        {/* Disc during emergence/rest/placement transition */}
         {showDisc && !isDiscOnPlatter && (
           <VinylDisc
             albumArtUrl={discArt}

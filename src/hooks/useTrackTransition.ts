@@ -1,12 +1,22 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { TransitionStage } from '../types/player';
 import type { SpotifyTrack } from '../services/spotifyService';
+import {
+  JACKET_ENTER_DURATION,
+  DISC_EMERGE_DURATION,
+  DISC_CENTER_DURATION,
+  DISC_REST_DURATION,
+  DISC_PLACE_DURATION,
+  EJECT_DURATION,
+} from '../config';
 
 const STAGE_DURATIONS: Partial<Record<TransitionStage, number>> = {
-  'eject': 300,
-  'jacket-enter': 800,
-  'disc-emerge': 700,
-  'disc-place': 900,
+  'eject': EJECT_DURATION,
+  'jacket-enter': JACKET_ENTER_DURATION,
+  'disc-emerge': DISC_EMERGE_DURATION,
+  'disc-center': DISC_CENTER_DURATION,
+  'disc-rest': DISC_REST_DURATION,
+  'disc-place': DISC_PLACE_DURATION,
 };
 
 interface UseTrackTransitionReturn {
@@ -73,11 +83,19 @@ export function useTrackTransition(
       setStage('disc-emerge');
 
       timerRef.current = setTimeout(() => {
-        setStage('disc-place');
+        setStage('disc-center');
 
         timerRef.current = setTimeout(() => {
-          setStage(isPlaying ? 'playing' : 'paused');
-        }, STAGE_DURATIONS['disc-place']!);
+          setStage('disc-rest');
+
+          timerRef.current = setTimeout(() => {
+            setStage('disc-place');
+
+            timerRef.current = setTimeout(() => {
+              setStage(isPlaying ? 'playing' : 'paused');
+            }, STAGE_DURATIONS['disc-place']!);
+          }, STAGE_DURATIONS['disc-rest']!);
+        }, STAGE_DURATIONS['disc-center']!);
       }, STAGE_DURATIONS['disc-emerge']!);
     }, STAGE_DURATIONS['jacket-enter']!);
 

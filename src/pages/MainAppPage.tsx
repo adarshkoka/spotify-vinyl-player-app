@@ -6,13 +6,14 @@ import RoomScene from '../components/RoomScene';
 import RecordPlayer from '../components/RecordPlayer';
 import PlayerControls from '../components/PlayerControls';
 import { extractColors, DEFAULT_COLORS, type ExtractedColors } from '../utils/colorExtractor';
+import { SPOTIFY_POLL_INTERVAL } from '../config';
 
 interface MainAppPageProps {
   onLogout: () => void;
 }
 
 const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
-  const { track, isPlaying, isLoading, error, togglePlayback, skipNext, skipBack } = useSpotifyPlayback();
+  const { track, isPlaying, isLoading, error, togglePlayback, skipNext, skipBack } = useSpotifyPlayback({ pollInterval: SPOTIFY_POLL_INTERVAL });
   const { stage, jacketTrack, discTrack } = useTrackTransition(track, isPlaying);
   const [gradientColors, setGradientColors] = useState<ExtractedColors>(DEFAULT_COLORS);
 
@@ -32,7 +33,7 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
         Logout
       </button>
 
-      <div className="flex flex-col items-center gap-6 w-full">
+      <div className="flex flex-col items-center w-full" style={{ gap: 'var(--gap-player-to-song, 16px)' }}>
 
         {/* Loading/Error states */}
         {isLoading && <p className="text-spotify-text-subdued text-sm">Connecting...</p>}
@@ -50,25 +51,24 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
           />
         </div>
 
-        {/* Song info */}
+        {/* Song info + controls grouped tightly */}
         {track && (
-          <div className="song-info text-center">
-            <p className="song-title text-xl font-bold" title={track.name}>{track.name}</p>
-            <p className="song-artist text-spotify-text-subdued" title={track.artists.map(a => a.name).join(', ')}>
-              {track.artists.map(a => a.name).join(', ')}
-            </p>
-            <p className="song-album" title={track.album.name}>{track.album.name}</p>
-          </div>
-        )}
+          <div className="flex flex-col items-center w-full" style={{ gap: 'var(--gap-song-to-controls, 8px)' }}>
+            <div className="song-info text-center">
+              <p className="song-title text-xl font-bold" title={track.name}>{track.name}</p>
+              <p className="song-artist text-spotify-text-subdued" title={track.artists.map(a => a.name).join(', ')}>
+                {track.artists.map(a => a.name).join(', ')}
+              </p>
+              <p className="song-album" title={track.album.name}>{track.album.name}</p>
+            </div>
 
-        {/* Player controls */}
-        {track && (
-          <PlayerControls
-            isPlaying={isPlaying}
-            onTogglePlayback={togglePlayback}
-            onSkipNext={skipNext}
-            onSkipBack={skipBack}
-          />
+            <PlayerControls
+              isPlaying={isPlaying}
+              onTogglePlayback={togglePlayback}
+              onSkipNext={skipNext}
+              onSkipBack={skipBack}
+            />
+          </div>
         )}
 
       </div>
