@@ -23,7 +23,7 @@ Copy the file `copy.env` and rename the copy to `.env.production`
 Change the contents of the `.env.production` file to match:
 ```env
 VITE_SPOTIFY_CLIENT_ID=<whatever's there>
-VITE_SPOTIFY_REDIRECT_URI=https://adarshkoka.github.io/spotify-pixel-art-gen-app
+VITE_SPOTIFY_REDIRECT_URI=https://adarshkoka.github.io/spotify-vinyl-player-app/
 ```
 ```bash
 npm run deploy
