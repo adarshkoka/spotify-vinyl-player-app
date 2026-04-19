@@ -131,6 +131,74 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+}
+
+/* Material texture overlay on turntable base */
+.base-texture-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.base-texture-wood {
+  background:
+    repeating-linear-gradient(
+      168deg,
+      transparent 0px,
+      transparent 6px,
+      rgba(255, 200, 120, 0.06) 6px,
+      rgba(255, 200, 120, 0.06) 7px
+    ),
+    repeating-linear-gradient(
+      165deg,
+      transparent 0px,
+      transparent 14px,
+      rgba(0, 0, 0, 0.08) 14px,
+      rgba(0, 0, 0, 0.08) 16px
+    );
+}
+
+.base-texture-aluminum {
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 2px,
+      rgba(255, 255, 255, 0.03) 2px,
+      rgba(255, 255, 255, 0.03) 3px
+    ),
+    radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, 0.06) 0%, transparent 60%);
+}
+
+.base-texture-silver {
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 3px,
+      rgba(255, 255, 255, 0.04) 3px,
+      rgba(255, 255, 255, 0.04) 4px
+    ),
+    radial-gradient(ellipse at 25% 15%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+}
+
+.base-texture-gold {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, transparent 40%, rgba(0, 0, 0, 0.05) 100%),
+    repeating-linear-gradient(
+      170deg,
+      transparent 0px,
+      transparent 10px,
+      rgba(255, 215, 0, 0.04) 10px,
+      rgba(255, 215, 0, 0.04) 11px
+    );
+}
+
+.base-texture-plastic {
+  background: radial-gradient(ellipse at 28% 18%, rgba(255, 255, 255, 0.07) 0%, transparent 50%);
 }
 
 .turntable-platter {
@@ -146,6 +214,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  z-index: 2;
 }
 
 .platter-spindle {
@@ -484,4 +553,197 @@
 .btn-logout:hover {
   border-color: rgba(255, 255, 255, 0.5);
   color: rgba(255, 255, 255, 0.7);
+}
+
+/* ============================
+   Tonearm
+   ============================ */
+
+.tonearm-container {
+  position: absolute;
+  top: 6px;
+  right: 14px;
+  width: 28px;
+  height: 200px;
+  z-index: 3;
+  pointer-events: none;
+  /* Pivot is the circle center at (14px, 12px) within the SVG */
+  transform-origin: 14px 12px;
+  transition: transform 0.8s ease-in-out;
+}
+
+.tonearm-resting {
+  transform: rotate(52deg);
+}
+
+.tonearm-playing {
+  transform: rotate(20deg);
+}
+
+/* Paused: slight pullback simulates needle lift */
+.tonearm-paused {
+  transform: rotate(23deg);
+}
+
+/* ============================
+   Color Customizer
+   ============================ */
+
+.color-customizer {
+  position: fixed;
+  bottom: 0.75rem;
+  right: 4.5rem;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+}
+
+.color-btns-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.color-btn-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.color-btn-label {
+  font-size: 0.45rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.3);
+  pointer-events: none;
+}
+
+.color-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--btn-color, #222);
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.color-btn:hover,
+.color-btn.active {
+  border-color: rgba(255, 255, 255, 0.6);
+  transform: scale(1.15);
+}
+
+.color-popover {
+  background: rgba(18, 18, 18, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 0.75rem;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+  width: 210px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.color-popover-label {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.35);
+  margin: 0;
+}
+
+.material-presets-row {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.material-preset-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 0.4rem 0.15rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.material-preset-btn:hover,
+.material-preset-btn.active {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.material-preset-swatch {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  display: block;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.material-preset-label {
+  font-size: 0.5rem;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.color-popover-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.custom-color-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.color-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.color-wheel-input {
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: none;
+  padding: 2px;
+  cursor: pointer;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.color-hex-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 0.3rem 0.45rem;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.65);
+  font-family: monospace;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.color-hex-input:focus {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.85);
 }

@@ -2,9 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { useSpotifyPlayback } from '../hooks/useSpotifyPlayback';
 import { useTrackTransition } from '../hooks/useTrackTransition';
+import { usePlayerColors } from '../hooks/usePlayerColors';
 import RoomScene from '../components/RoomScene';
 import RecordPlayer from '../components/RecordPlayer';
 import PlayerControls from '../components/PlayerControls';
+import ColorCustomizer from '../components/ColorCustomizer';
 import { extractColors, DEFAULT_COLORS, type ExtractedColors } from '../utils/colorExtractor';
 import { SPOTIFY_POLL_INTERVAL } from '../config';
 
@@ -16,6 +18,7 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
   const { track, isPlaying, isLoading, error, togglePlayback, skipNext, skipBack } = useSpotifyPlayback({ pollInterval: SPOTIFY_POLL_INTERVAL });
   const { stage, jacketTrack, discTrack } = useTrackTransition(track, isPlaying);
   const [gradientColors, setGradientColors] = useState<ExtractedColors>(DEFAULT_COLORS);
+  const { baseBackground, baseColor, baseMaterial, tonearmColor, tonearmMaterial, setBaseColor, setTonearmColor, applyMaterialPreset } = usePlayerColors();
 
   // Extract colors when track changes
   useEffect(() => {
@@ -33,6 +36,16 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
         Logout
       </button>
 
+      <ColorCustomizer
+        baseColor={baseColor}
+        tonearmColor={tonearmColor}
+        baseMaterial={baseMaterial}
+        tonearmMaterial={tonearmMaterial}
+        onSetBaseColor={setBaseColor}
+        onSetTonearmColor={setTonearmColor}
+        onApplyMaterialPreset={applyMaterialPreset}
+      />
+
       <div className="flex flex-col items-center w-full" style={{ gap: 'var(--gap-player-to-song, 16px)' }}>
 
         {/* Loading/Error states */}
@@ -48,6 +61,10 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
             isPlaying={isPlaying}
             transitionStage={stage}
             onTogglePlayback={togglePlayback}
+            baseBackground={baseBackground}
+            baseMaterial={baseMaterial}
+            tonearmColor={tonearmColor}
+            tonearmMaterial={tonearmMaterial}
           />
         </div>
 
