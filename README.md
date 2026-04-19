@@ -1,8 +1,8 @@
-# Spotify Pixel Art Generator 🎨🎶
+# Spotify Vinyl Player 💿🎶
 
-Pixelate your currently playing Spotify song
+Vinyl Record Player to play music on Spotify. Login with Spotify and play songs.
 
-Trying it out here: [https://shanthatos.github.io/spotify-pixel-art-gen-app/](https://shanthatos.github.io/spotify-pixel-art-gen-app/)
+Try it out here: [https://adarshkoka.github.io/spotify-vinyl-player-app/)
 
 ## Local Development
 
@@ -23,7 +23,7 @@ Copy the file `copy.env` and rename the copy to `.env.production`
 Change the contents of the `.env.production` file to match:
 ```env
 VITE_SPOTIFY_CLIENT_ID=<whatever's there>
-VITE_SPOTIFY_REDIRECT_URI=https://shanThatos.github.io/spotify-pixel-art-gen-app
+VITE_SPOTIFY_REDIRECT_URI=https://adarshkoka.github.io/spotify-pixel-art-gen-app
 ```
 ```bash
 npm run deploy
