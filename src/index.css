@@ -81,6 +81,9 @@
   flex-direction: column;
   align-items: center;
   width: 100%;
+
+  margin-bottom: .5rem; 
+  margin-top: 2rem;
 }
 
 .turntable-base {
@@ -231,14 +234,35 @@
    Transition Area
    ============================ */
 
+/* .transition-area {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  height: 35%; 
+  
+  margin-top: 2rem;
+  
+  overflow: visible;
+  z-index: 10;
+  width: 100%;
+} */
+
 .transition-area {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 0;
+  
+  height: auto; 
+  
+  margin-bottom: 0.5rem; 
+  
+  margin-top: 1.5rem;
   overflow: visible;
   z-index: 10;
+  width: 100%;
 }
 
 /* Stage-specific animations for jacket */
@@ -294,9 +318,10 @@
 
 .song-info {
   text-align: center;
-  padding: 0.75rem 0;
+  padding: 0 0 0.75rem 0;
   max-width: 360px;
   width: 100%;
+  margin-top: -2rem;
 }
 
 .song-title {

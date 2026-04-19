@@ -15,48 +15,41 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
 
   return (
     <RoomScene>
-      {/* Loading state */}
-      {isLoading && (
-        <p className="text-spotify-text-subdued text-sm">Connecting to Spotify...</p>
-      )}
+      {/* RoomScene content goes here */}
+      <div className="flex flex-col items-center gap-8 w-full">
+        
+        {/* Loading/Error states */}
+        {isLoading && <p className="...">Connecting...</p>}
+        {error && !isLoading && <p className="...">Error: {error}</p>}
 
-      {/* Error state */}
-      {error && !isLoading && (
-        <p className="text-red-400 text-sm">Error: {error}</p>
-      )}
-
-      {/* No song playing */}
-      {!isLoading && !error && !track && (
-        <p className="text-spotify-text-subdued text-sm">
-          No song is currently playing. Start playing on Spotify and it will appear here.
-        </p>
-      )}
-
-      {/* Record player */}
-      <RecordPlayer
-        track={track}
-        jacketTrack={jacketTrack}
-        discTrack={discTrack}
-        isPlaying={isPlaying}
-        transitionStage={stage}
-        onTogglePlayback={togglePlayback}
-      />
-
-      {/* Song info */}
-      {track && (
-        <div className="song-info">
-          <p className="song-title" title={track.name}>{track.name}</p>
-          <p className="song-artist" title={track.artists.map(a => a.name).join(', ')}>
-            {track.artists.map(a => a.name).join(', ')}
-          </p>
-          {isPlaying && <p className="playback-status mt-1">♫ Playing</p>}
+        {/* Record player */}
+        <div className="relative w-full flex justify-center">
+          <RecordPlayer
+            track={track}
+            jacketTrack={jacketTrack}
+            discTrack={discTrack}
+            isPlaying={isPlaying}
+            transitionStage={stage}
+            onTogglePlayback={togglePlayback}
+          />
         </div>
-      )}
 
-      {/* Logout */}
-      <button onClick={onLogout} className="btn-logout mt-4">
-        Logout
-      </button>
+        {/* Song info */}
+        {track && (
+          <div className="song-info text-center">
+            <p className="song-title text-xl font-bold" title={track.name}>{track.name}</p>
+            <p className="song-artist text-spotify-text-subdued" title="...">
+              {track.artists.map(a => a.name).join(', ')}
+            </p>
+            {isPlaying && <p className="playback-status mt-2 text-green-400">♫ PLAYING</p>}
+          </div>
+        )}
+
+        {/* Logout */}
+        {/* <button onClick={onLogout} className="btn-logout">
+          Logout
+        </button> */}
+      </div>
     </RoomScene>
   );
 };
