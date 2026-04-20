@@ -152,51 +152,151 @@
   z-index: 1;
 }
 
-/* Shared lighting sheen applied to all texture overlays */
+/* Subtle noise grain — makes wood look like timber, metal like brushed finish */
+.base-texture-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+  opacity: 0.045;
+  pointer-events: none;
+}
+
+/* Shared lighting sheen — overridden per-material via their own ::after */
 .base-texture-overlay::after {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: 16px;
-  background: radial-gradient(ellipse at 28% 15%, rgba(255, 255, 255, 0.08) 0%, transparent 55%);
+  background: radial-gradient(ellipse at 28% 15%, rgba(255, 255, 255, 0.13) 0%, transparent 58%);
   pointer-events: none;
 }
 
+/* Per-material ::after blocks override the shared sheen above */
+
 .base-texture-wood {
   background:
-    /* Subtle warm grain — smooth organic curves, no parallel lines */
-    radial-gradient(ellipse at 20% 60%, rgba(180, 120, 60, 0.1) 0%, transparent 50%),
-    radial-gradient(ellipse at 75% 30%, rgba(160, 100, 50, 0.08) 0%, transparent 45%),
-    radial-gradient(ellipse at 50% 80%, rgba(140, 90, 40, 0.06) 0%, transparent 55%),
-    /* Top-left warm highlight */
-    radial-gradient(ellipse at 25% 15%, rgba(255, 200, 120, 0.09) 0%, transparent 50%);
+    /* Grain rings — concentric ovals offset to look organic */
+    repeating-radial-gradient(ellipse 120% 90% at 38% 52%,
+      rgba(160, 95, 40, 0.0) 0px, rgba(160, 95, 40, 0.12) 3px,
+      rgba(120, 68, 28, 0.0) 5px, rgba(120, 68, 28, 0.10) 8px,
+      rgba(148, 88, 36, 0.0) 10px, rgba(148, 88, 36, 0.08) 13px,
+      transparent 15px
+    ),
+    /* Second ring set, offset for natural irregularity */
+    repeating-radial-gradient(ellipse 100% 130% at 62% 40%,
+      rgba(142, 82, 32, 0.0) 0px, rgba(142, 82, 32, 0.09) 4px,
+      rgba(110, 60, 22, 0.0) 6px, rgba(110, 60, 22, 0.07) 10px,
+      transparent 12px
+    ),
+    /* Warm depth gradient */
+    linear-gradient(166deg, rgba(255, 219, 163, 0.14) 0%, transparent 22%, rgba(95, 47, 19, 0.12) 52%, transparent 82%);
+  border-top: 1px solid rgba(210, 160, 100, 0.25);
+  border-left: 1px solid rgba(210, 160, 100, 0.18);
+}
+
+.base-texture-wood::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255, 230, 180, 0.18) 0%, transparent 40%, rgba(60, 30, 10, 0.08) 100%);
+  pointer-events: none;
 }
 
 .base-texture-aluminum {
   background:
-    /* Soft anisotropic sheen — elongated highlight simulates brushed metal without lines */
-    radial-gradient(ellipse 180% 40% at 30% 20%, rgba(255, 255, 255, 0.07) 0%, transparent 70%),
-    radial-gradient(ellipse 160% 30% at 70% 70%, rgba(255, 255, 255, 0.03) 0%, transparent 60%),
-    /* Slight cool tone shift */
-    linear-gradient(160deg, rgba(200, 210, 220, 0.04) 0%, transparent 50%);
+    /* Brushed horizontal lines — fine parallel bands */
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.0) 0px,
+      rgba(255, 255, 255, 0.08) 1px,
+      rgba(180, 195, 210, 0.03) 2px,
+      rgba(255, 255, 255, 0.0) 3px
+    ),
+    /* Second pass slightly offset for realism */
+    repeating-linear-gradient(
+      2deg,
+      rgba(200, 212, 224, 0.0) 0px,
+      rgba(200, 212, 224, 0.05) 1.5px,
+      rgba(160, 175, 190, 0.02) 2.5px,
+      rgba(200, 212, 224, 0.0) 4px
+    ),
+    /* Subtle directional highlight */
+    linear-gradient(170deg, rgba(228, 235, 241, 0.12) 0%, transparent 30%, rgba(80, 90, 100, 0.08) 60%, transparent 90%);
+  border-top: 1px solid rgba(200, 210, 220, 0.22);
+  border-left: 1px solid rgba(200, 210, 220, 0.15);
+}
+
+.base-texture-aluminum::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, transparent 45%, rgba(0, 0, 0, 0.05) 100%);
+  pointer-events: none;
 }
 
 .base-texture-silver {
   background:
-    /* Brighter sheen than aluminum — crisp reflective feel */
-    radial-gradient(ellipse 180% 35% at 25% 15%, rgba(255, 255, 255, 0.12) 0%, transparent 65%),
-    radial-gradient(ellipse 140% 30% at 65% 75%, rgba(255, 255, 255, 0.04) 0%, transparent 55%),
-    linear-gradient(155deg, rgba(220, 225, 230, 0.05) 0%, transparent 45%);
+    /* Circular polishing marks — concentric rings like buffed chrome */
+    repeating-radial-gradient(ellipse 110% 100% at 45% 48%,
+      rgba(255, 255, 255, 0.0) 0px, rgba(255, 255, 255, 0.14) 2px,
+      rgba(200, 210, 220, 0.0) 4px, rgba(255, 255, 255, 0.10) 7px,
+      rgba(190, 200, 212, 0.0) 9px, rgba(255, 255, 255, 0.07) 12px,
+      transparent 14px
+    ),
+    /* Second ring set offset for natural irregularity */
+    repeating-radial-gradient(ellipse 95% 120% at 58% 42%,
+      rgba(255, 255, 255, 0.0) 0px, rgba(255, 255, 255, 0.10) 3px,
+      rgba(200, 210, 220, 0.0) 5px, rgba(255, 255, 255, 0.06) 9px,
+      transparent 11px
+    ),
+    linear-gradient(155deg, rgba(245, 248, 252, 0.14) 0%, transparent 25%, rgba(90, 100, 110, 0.10) 55%, transparent 85%);
+  border-top: 1px solid rgba(240, 244, 248, 0.3);
+  border-left: 1px solid rgba(240, 244, 248, 0.2);
+}
+
+.base-texture-silver::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.22) 0%, transparent 42%, rgba(0, 0, 0, 0.06) 100%);
+  pointer-events: none;
 }
 
 .base-texture-gold {
   background:
-    /* Rich golden sheen — warm radial highlights, no lines */
-    radial-gradient(ellipse at 30% 20%, rgba(255, 200, 80, 0.14) 0%, transparent 50%),
-    radial-gradient(ellipse at 65% 65%, rgba(255, 180, 40, 0.08) 0%, transparent 45%),
-    radial-gradient(ellipse 200% 40% at 40% 40%, rgba(255, 215, 100, 0.06) 0%, transparent 60%),
-    /* Warm directional highlight */
-    linear-gradient(145deg, rgba(255, 220, 120, 0.08) 0%, transparent 40%, rgba(0, 0, 0, 0.04) 100%);
+    /* Golden circular buffing marks — concentric rings with warm tones */
+    repeating-radial-gradient(ellipse 115% 95% at 42% 50%,
+      rgba(255, 230, 140, 0.0) 0px, rgba(255, 230, 140, 0.16) 2px,
+      rgba(200, 150, 40, 0.0) 4px, rgba(255, 225, 120, 0.12) 7px,
+      rgba(180, 120, 20, 0.0) 9px, rgba(255, 235, 150, 0.09) 12px,
+      transparent 14px
+    ),
+    /* Second ring set offset */
+    repeating-radial-gradient(ellipse 90% 125% at 60% 44%,
+      rgba(255, 225, 120, 0.0) 0px, rgba(255, 225, 120, 0.11) 3px,
+      rgba(190, 130, 30, 0.0) 5px, rgba(255, 230, 140, 0.07) 9px,
+      transparent 11px
+    ),
+    /* Warm depth glow */
+    radial-gradient(ellipse 160% 48% at 50% 54%, rgba(255, 196, 48, 0.12) 0%, transparent 50%),
+    linear-gradient(150deg, rgba(255, 230, 130, 0.16) 0%, transparent 24%, rgba(122, 74, 0, 0.10) 62%, transparent 90%);
+  border-top: 1px solid rgba(255, 225, 130, 0.35);
+  border-left: 1px solid rgba(255, 225, 130, 0.25);
+}
+
+.base-texture-gold::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255, 245, 190, 0.28) 0%, transparent 40%, rgba(100, 60, 0, 0.1) 100%);
+  pointer-events: none;
 }
 
 .base-texture-plastic {

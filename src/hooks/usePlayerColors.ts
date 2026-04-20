@@ -16,25 +16,25 @@ export const MATERIAL_PRESETS: MaterialPresetDef[] = [
     id: 'wood',
     label: 'Wood',
     color: '#3b1f0c',
-    gradient: 'linear-gradient(145deg, #5c3317 0%, #3b1f0c 60%, #2a1508 100%)',
+    gradient: 'linear-gradient(145deg, #6a3d1d 0%, #4a2813 34%, #3b1f0c 64%, #241106 100%)',
   },
   {
     id: 'aluminum',
     label: 'Alum.',
-    color: '#22272b',
-    gradient: 'linear-gradient(145deg, #3a3f44 0%, #22272b 60%, #1a1e21 100%)',
+    color: '#3f474e',
+    gradient: 'linear-gradient(145deg, #8a949d 0%, #555f68 24%, #3f474e 58%, #2a3035 100%)',
   },
   {
     id: 'silver',
     label: 'Silver',
-    color: '#6b6b6b',
-    gradient: 'linear-gradient(145deg, #9e9e9e 0%, #6b6b6b 50%, #4a4a4a 100%)',
+    color: '#7d848c',
+    gradient: 'linear-gradient(145deg, #e0e4e8 0%, #9ba3ab 22%, #7d848c 56%, #555c64 100%)',
   },
   {
     id: 'gold',
     label: 'Gold',
-    color: '#8b6310',
-    gradient: 'linear-gradient(145deg, #c9922a 0%, #8b6310 50%, #5c3f08 100%)',
+    color: '#a06d0a',
+    gradient: 'linear-gradient(145deg, #f0cf71 0%, #d39a24 22%, #a06d0a 58%, #6c4304 100%)',
   },
 ];
 
@@ -42,7 +42,6 @@ interface StoredColors {
   baseBackground: string | null;
   baseColor: string;
   baseMaterial: MaterialPreset;
-  tonearmBackground: string | null;
   tonearmColor: string;
   tonearmMaterial: MaterialPreset;
 }
@@ -51,7 +50,6 @@ const DEFAULTS: StoredColors = {
   baseBackground: null,
   baseColor: '#222222',
   baseMaterial: null,
-  tonearmBackground: null,
   tonearmColor: '#252525',
   tonearmMaterial: null,
 };
@@ -87,7 +85,7 @@ export function usePlayerColors() {
 
   const setTonearmColor = useCallback((color: string) => {
     setState(prev => {
-      const next: StoredColors = { ...prev, tonearmBackground: color, tonearmColor: color, tonearmMaterial: null };
+      const next: StoredColors = { ...prev, tonearmColor: color, tonearmMaterial: null };
       save(next);
       return next;
     });
@@ -99,7 +97,7 @@ export function usePlayerColors() {
     setState(prev => {
       const next: StoredColors = target === 'base'
         ? { ...prev, baseBackground: preset.gradient, baseColor: preset.color, baseMaterial: presetId }
-        : { ...prev, tonearmBackground: preset.gradient, tonearmColor: preset.color, tonearmMaterial: presetId };
+        : { ...prev, tonearmColor: preset.color, tonearmMaterial: presetId };
       save(next);
       return next;
     });
@@ -109,7 +107,6 @@ export function usePlayerColors() {
     baseBackground: state.baseBackground,
     baseColor: state.baseColor,
     baseMaterial: state.baseMaterial,
-    tonearmBackground: state.tonearmBackground,
     tonearmColor: state.tonearmColor,
     tonearmMaterial: state.tonearmMaterial,
     setBaseColor,
