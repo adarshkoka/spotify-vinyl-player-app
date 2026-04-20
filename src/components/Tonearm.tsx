@@ -6,6 +6,7 @@ interface TonearmProps {
   transitionStage: TransitionStage;
   tonearmColor?: string;
   tonearmMaterial?: MaterialPreset;
+  isScrubbing?: boolean;
 }
 
 function getTonearmClass(stage: TransitionStage): string {
@@ -28,13 +29,14 @@ const Tonearm: React.FC<TonearmProps> = ({
   transitionStage,
   tonearmColor = '#252525',
   tonearmMaterial,
+  isScrubbing = false,
 }) => {
   const posClass = getTonearmClass(transitionStage);
   const fill = tonearmColor;
   const fillDark = adjustHex(tonearmColor, -20);
 
   return (
-    <div className={`tonearm-container ${posClass}`}>
+    <div className={`tonearm-container ${posClass} ${isScrubbing ? 'tonearm-wobble' : ''}`}>
       <svg
         width="28"
         height="200"

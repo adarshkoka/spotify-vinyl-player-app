@@ -7,6 +7,7 @@ import type { TransitionStage } from '../types/player';
 import type { SpotifyTrack, ContextTrack } from '../services/spotifyService';
 import type { MaterialPreset } from '../hooks/usePlayerColors';
 import type { PanelView } from '../hooks/useTracklistPanel';
+import type { ScrubDirection, LedSkip } from '../hooks/useDiscScrub';
 
 interface RecordPlayerProps {
   jacketTrack: SpotifyTrack | null;
@@ -18,6 +19,12 @@ interface RecordPlayerProps {
   baseMaterial?: MaterialPreset;
   tonearmColor?: string;
   tonearmMaterial?: MaterialPreset;
+  // Scrub props
+  isScrubbing?: boolean;
+  scrubAngle?: number;
+  scrubDirection?: ScrubDirection;
+  ledSkip?: LedSkip;
+  onDiscPointerDown?: (e: React.PointerEvent<HTMLDivElement>) => void;
   // Tracklist panel props
   isTracklistOpen?: boolean;
   tracklistTracks?: ContextTrack[];
@@ -59,6 +66,11 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
   baseMaterial,
   tonearmColor,
   tonearmMaterial,
+  isScrubbing = false,
+  scrubAngle = 0,
+  scrubDirection = 'none',
+  ledSkip = 'none',
+  onDiscPointerDown,
   isTracklistOpen = false,
   tracklistTracks = [],
   currentTrackUri = null,
@@ -99,6 +111,7 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
           transitionStage={transitionStage}
           tonearmColor={tonearmColor}
           tonearmMaterial={tonearmMaterial}
+          isScrubbing={isScrubbing}
         />
 
         {/* Platter */}
@@ -110,11 +123,30 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
               isSpinning={isDiscSpinning}
               className="disc-on-platter"
               onClick={onTogglePlayback}
+              isScrubbing={isScrubbing}
+              scrubAngle={scrubAngle}
+              onPointerDown={onDiscPointerDown}
             />
           )}
 
           {/* Platter center spindle */}
           {!isDiscOnPlatter && <div className="platter-spindle" />}
+        </div>
+
+        {/* Transport LED indicators */}
+        <div className="transport-leds">
+          <span className={`transport-led ${ledSkip === 'skip-prev' ? 'led-active' : ''}`}>
+            <svg viewBox="0 0 10 8" fill="currentColor"><rect x="0" y="0" width="1.5" height="8"/><polygon points="9.5,0 2.5,4 9.5,8"/></svg>
+          </span>
+          <span className={`transport-led ${scrubDirection === 'backward' ? 'led-active' : ''}`}>
+            <svg viewBox="0 0 12 8" fill="currentColor"><polygon points="6,0 0,4 6,8"/><polygon points="12,0 6,4 12,8"/></svg>
+          </span>
+          <span className={`transport-led ${scrubDirection === 'forward' ? 'led-active' : ''}`}>
+            <svg viewBox="0 0 12 8" fill="currentColor"><polygon points="0,0 6,4 0,8"/><polygon points="6,0 12,4 6,8"/></svg>
+          </span>
+          <span className={`transport-led ${ledSkip === 'skip-next' ? 'led-active' : ''}`}>
+            <svg viewBox="0 0 10 8" fill="currentColor"><polygon points="0,0 7,4 0,8"/><rect x="8.5" y="0" width="1.5" height="8"/></svg>
+          </span>
         </div>
       </div>
 

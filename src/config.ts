@@ -43,6 +43,20 @@ export const VINYL_SPIN_DURATION = 1800;
 /** Duration (ms) for the room background gradient to transition between songs. */
 export const GRADIENT_TRANSITION_DURATION = 1500;
 
+// ─── Disc scrubbing ─────────────────────────────────────────────────────────
+
+/** How many milliseconds of track time one degree of disc rotation represents. */
+export const SCRUB_MS_PER_DEGREE = 80;
+
+/**
+ * Degrees of rotation that triggers a full-rotation skip action.
+ * >= this value right = skip next, <= negative = skip previous / restart.
+ */
+export const SCRUB_FULL_ROTATION_THRESHOLD = 330;
+
+/** Minimum interval (ms) between seek API calls to avoid rate limits. */
+export const SCRUB_SEEK_THROTTLE_MS = 300;
+
 // ─── Layout spacing (pixels) ────────────────────────────────────────────────
 
 /**

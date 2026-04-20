@@ -36,6 +36,8 @@ export function useTrackTransition(
   const loadedTrackIdRef = useRef<string | null>(null);
   const loadedAlbumUriRef = useRef<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isPlayingRef = useRef(isPlaying);
+  isPlayingRef.current = isPlaying;
 
   const clearTimer = useCallback(() => {
     if (timerRef.current) {
@@ -107,7 +109,7 @@ export function useTrackTransition(
             setStage('disc-place');
 
             timerRef.current = setTimeout(() => {
-              setStage(isPlaying ? 'playing' : 'paused');
+              setStage(isPlayingRef.current ? 'playing' : 'paused');
             }, STAGE_DURATIONS['disc-place']!);
           }, STAGE_DURATIONS['disc-rest']!);
         }, STAGE_DURATIONS['disc-center']!);

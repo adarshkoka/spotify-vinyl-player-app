@@ -1,9 +1,9 @@
-// src/pages/MainAppPage.tsx
 import React, { useState, useEffect } from 'react';
 import { useSpotifyPlayback } from '../hooks/useSpotifyPlayback';
 import { useTrackTransition } from '../hooks/useTrackTransition';
 import { usePlayerColors } from '../hooks/usePlayerColors';
 import { useTracklistPanel } from '../hooks/useTracklistPanel';
+import { useDiscScrub } from '../hooks/useDiscScrub';
 import RoomScene from '../components/RoomScene';
 import RecordPlayer from '../components/RecordPlayer';
 import PlayerControls from '../components/PlayerControls';
@@ -16,11 +16,21 @@ interface MainAppPageProps {
 }
 
 const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
-  const { track, isPlaying, isLoading, error, contextUri, contextType, togglePlayback, skipNext, skipBack } = useSpotifyPlayback({ pollInterval: SPOTIFY_POLL_INTERVAL });
+  const { track, isPlaying, isLoading, error, contextUri, contextType, progressMs, durationMs, togglePlayback, skipNext, skipBack } = useSpotifyPlayback({ pollInterval: SPOTIFY_POLL_INTERVAL });
   const { stage, jacketTrack, discTrack } = useTrackTransition(track, isPlaying);
   const [gradientColors, setGradientColors] = useState<ExtractedColors>(DEFAULT_COLORS);
   const { baseBackground, baseColor, baseMaterial, tonearmColor, tonearmMaterial, setBaseColor, setTonearmColor, applyMaterialPreset } = usePlayerColors();
   const { isOpen: isTracklistOpen, tracks: tracklistTracks, selectedTrackUri, panelView, isSupportedContext, toggleOpen: toggleTracklist, close: closeTracklist, selectTrack, showAlbum, showPlaylist, showQueue, goBack, addToQueue } = useTracklistPanel(contextUri, contextType, track?.album ?? null, track?.uri);
+
+  const canScrub = stage === 'playing' || stage === 'paused';
+  const { isScrubbing, scrubAngle, scrubDirection, ledSkip, handlers: scrubHandlers } = useDiscScrub({
+    progressMs,
+    durationMs,
+    isPlaying,
+    canScrub,
+    onSkipNext: skipNext,
+    onSkipBack: skipBack,
+  });
 
   const tracklistAccentColor = pickTracklistAccentColor(baseColor, tonearmColor, gradientColors.vibrantAccent);
   const tracklistAvailable = contextType === 'playlist' || (track?.album?.total_tracks ?? 0) > 1;
@@ -70,6 +80,11 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
             baseMaterial={baseMaterial}
             tonearmColor={tonearmColor}
             tonearmMaterial={tonearmMaterial}
+            isScrubbing={isScrubbing}
+            scrubAngle={scrubAngle}
+            onDiscPointerDown={scrubHandlers.onPointerDown}
+            scrubDirection={scrubDirection}
+            ledSkip={ledSkip}
             isTracklistOpen={isTracklistOpen}
             tracklistTracks={tracklistTracks}
             currentTrackUri={selectedTrackUri ?? track?.uri ?? null}

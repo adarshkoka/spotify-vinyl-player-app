@@ -327,3 +327,10 @@ export async function addToQueue(trackUri: string): Promise<void> {
     { method: 'POST' }
   );
 }
+
+export async function seekToPosition(positionMs: number): Promise<void> {
+  await spotifyApiCall<void>(
+    `me/player/seek?position_ms=${Math.round(Math.max(0, positionMs))}`,
+    { method: 'PUT' }
+  );
+}
