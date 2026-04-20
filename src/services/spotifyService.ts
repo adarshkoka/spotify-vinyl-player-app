@@ -154,6 +154,7 @@ export interface SpotifyAlbum {
 }
 
 export interface SpotifyArtist {
+  id: string;
   name: string;
 }
 
@@ -275,4 +276,54 @@ export async function playTrackInContext(contextUri: string, trackUri: string): 
     method: 'PUT',
     body: { context_uri: contextUri, offset: { uri: trackUri } },
   });
+}
+
+// --- Queue ---
+
+interface SpotifyQueueResponse {
+  currently_playing: {
+    uri: string;
+    name: string;
+    artists: SpotifyArtist[];
+    duration_ms: number;
+  } | null;
+  queue: Array<{
+    uri: string;
+    name: string;
+    artists: SpotifyArtist[];
+    duration_ms: number;
+  }>;
+}
+
+export async function getQueue(): Promise<ContextTrack[]> {
+  const data = await spotifyApiCall<SpotifyQueueResponse>('me/player/queue');
+  const result: ContextTrack[] = [];
+  let pos = 1;
+  if (data.currently_playing) {
+    const c = data.currently_playing;
+    result.push({
+      uri: c.uri,
+      name: c.name,
+      artists: c.artists.map(a => a.name).join(', '),
+      track_number: pos++,
+      duration_ms: c.duration_ms,
+    });
+  }
+  for (const t of data.queue) {
+    result.push({
+      uri: t.uri,
+      name: t.name,
+      artists: t.artists.map(a => a.name).join(', '),
+      track_number: pos++,
+      duration_ms: t.duration_ms,
+    });
+  }
+  return result;
+}
+
+export async function addToQueue(trackUri: string): Promise<void> {
+  await spotifyApiCall<void>(
+    `me/player/queue?uri=${encodeURIComponent(trackUri)}`,
+    { method: 'POST' }
+  );
 }

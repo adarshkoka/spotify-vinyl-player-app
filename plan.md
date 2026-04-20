@@ -78,3 +78,31 @@ State-Driven Transitions: Transition triggers must be tied to Spotify’s track_
 - Track data cached per context URI to avoid redundant API calls
 - Jacket becomes clickable as soon as it finishes entering, without waiting for the full disc animation to complete
 - Song info hidden while the tracklist panel is open to save vertical space
+
+---------------------------------------------------------------------------------------
+
+## Phase 4A: Queue Panel, Song-Info Links, Add-to-Queue & Panel Polish
+
+- Song-info hyperlinks: artist name and album name are clickable links that open in Spotify (new browser tab via target="_blank") using open.spotify.com URLs
+- Queue panel accessible via [Queue →] button from any panel view; shows currently playing track at position 1 plus upcoming queued tracks, always fetched fresh (not cached)
+- Three-panel navigation model replacing the old album/playlist toggle:
+  - Playlist panel (default for playlist context): [← Album] left, [Queue →] right
+  - Album panel (default for album/artist context): [← Playlist] left (only if playlist context), [Queue →] right
+  - Queue panel: [← Back] left (returns to previous panel)
+  - Queue button always visible regardless of track count
+- Panel never opens empty: tracks are fetched before the panel opens; cached data opens instantly, fetch failure keeps panel closed
+- Track numbers hidden on playlist panel, shown on album (album track #) and queue (queue position #)
+- Per-track add-to-queue button (+ icon) shown to the left of duration in all panel views; feedback: + → "Added to Queue" → ✓ checkmark (persists until panel closes/reopens)
+- Disc spindle visual improvement: flat gray circle replaced with metallic radial gradient and subtle ring for depth
+
+---------------------------------------------------------------------------------------
+
+## Phase 4B: Disc Scrubbing & Rotation
+
+- Click-and-drag (mouse) or touch-and-drag (mobile) on the spinning disc to scrub/seek through the track in real-time
+- Disc visually follows the user's rotation with tactile effects: subtle radial blur + slight scale pulse while dragging
+- Coast effect on release: disc continues rotating with decreasing velocity before snapping back to playback speed
+- Tonearm wobbles subtly (±2-3°) during scrubbing and settles smoothly on release
+- Full rotation right skips to next track; full rotation left restarts current or goes to previous based on progress
+- Tunable config variables: seconds-per-degree, full-rotation threshold, coast duration, coast friction
+- Seek calls throttled to avoid Spotify API rate limits

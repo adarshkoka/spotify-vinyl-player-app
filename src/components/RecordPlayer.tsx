@@ -6,6 +6,7 @@ import Tonearm from './Tonearm';
 import type { TransitionStage } from '../types/player';
 import type { SpotifyTrack, ContextTrack } from '../services/spotifyService';
 import type { MaterialPreset } from '../hooks/usePlayerColors';
+import type { PanelView } from '../hooks/useTracklistPanel';
 
 interface RecordPlayerProps {
   jacketTrack: SpotifyTrack | null;
@@ -21,15 +22,19 @@ interface RecordPlayerProps {
   isTracklistOpen?: boolean;
   tracklistTracks?: ContextTrack[];
   currentTrackUri?: string | null;
+  panelView?: PanelView;
   isPlaylist?: boolean;
-  isShowingAlbum?: boolean;
   albumTrackCount?: number;
   onToggleTracklist?: () => void;
   onCloseTracklist?: () => void;
   onSelectTrack?: (trackUri: string) => void;
   onShowAlbum?: () => void;
-  onShowContext?: () => void;
+  onShowPlaylist?: () => void;
+  onShowQueue?: () => void;
+  onGoBack?: () => void;
+  onAddToQueue?: (trackUri: string) => Promise<void>;
   tracklistAccentColor?: string;
+  tracklistAvailable?: boolean;
 }
 
 function getAlbumArtUrl(track: SpotifyTrack | null): string | null {
@@ -57,15 +62,19 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
   isTracklistOpen = false,
   tracklistTracks = [],
   currentTrackUri = null,
+  panelView = 'playlist',
   isPlaylist = false,
-  isShowingAlbum = false,
   albumTrackCount,
   onToggleTracklist,
   onCloseTracklist,
   onSelectTrack,
   onShowAlbum,
-  onShowContext,
+  onShowPlaylist,
+  onShowQueue,
+  onGoBack,
+  onAddToQueue,
   tracklistAccentColor,
+  tracklistAvailable = true,
 }) => {
   const discArt = getAlbumArtUrl(discTrack);
   const jacketArt = getAlbumArtUrl(jacketTrack);
@@ -115,7 +124,7 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
           <AlbumJacket
             albumArtUrl={jacketArt}
             className={`stage-${transitionStage}`}
-            canOpen={transitionStage !== 'jacket-enter' && transitionStage !== 'eject'}
+            canOpen={transitionStage !== 'jacket-enter' && transitionStage !== 'eject' && tracklistAvailable}
             isOpen={isTracklistOpen}
             onToggleOpen={onToggleTracklist}
           />
@@ -137,13 +146,16 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
         tracks={tracklistTracks}
         currentTrackUri={currentTrackUri}
         accentColor={tracklistAccentColor ?? baseColor}
+        panelView={panelView}
         isPlaylist={isPlaylist}
-        isShowingAlbum={isShowingAlbum}
         albumTrackCount={albumTrackCount}
         onSelectTrack={onSelectTrack ?? (() => {})}
         onClose={onCloseTracklist ?? (() => {})}
         onShowAlbum={onShowAlbum}
-        onShowContext={onShowContext}
+        onShowPlaylist={onShowPlaylist}
+        onShowQueue={onShowQueue}
+        onGoBack={onGoBack}
+        onAddToQueue={onAddToQueue}
       />
     </div>
   );

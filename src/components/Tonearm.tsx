@@ -32,7 +32,6 @@ const Tonearm: React.FC<TonearmProps> = ({
   const posClass = getTonearmClass(transitionStage);
   const fill = tonearmColor;
   const fillDark = adjustHex(tonearmColor, -20);
-  const fillLight = adjustHex(tonearmColor, 25);
 
   return (
     <div className={`tonearm-container ${posClass}`}>
@@ -53,6 +52,26 @@ const Tonearm: React.FC<TonearmProps> = ({
             <stop offset="0%" stopColor="#fff" stopOpacity="0.12" />
             <stop offset="40%" stopColor="#fff" stopOpacity="0.02" />
             <stop offset="100%" stopColor="#000" stopOpacity="0.08" />
+          </linearGradient>
+          {/* Wood warm highlight */}
+          <linearGradient id="wood-sheen" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#d4a060" stopOpacity="0.15" />
+            <stop offset="50%" stopColor="#c08040" stopOpacity="0.04" />
+            <stop offset="100%" stopColor="#000" stopOpacity="0.06" />
+          </linearGradient>
+          {/* Brushed metal soft sheen */}
+          <linearGradient id="metal-sheen" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#fff" stopOpacity="0.10" />
+            <stop offset="35%" stopColor="#fff" stopOpacity="0.02" />
+            <stop offset="65%" stopColor="#fff" stopOpacity="0.06" />
+            <stop offset="100%" stopColor="#000" stopOpacity="0.06" />
+          </linearGradient>
+          {/* Gold warm metallic sheen */}
+          <linearGradient id="gold-sheen" x1="0" y1="0" x2="1" y2="0.5">
+            <stop offset="0%" stopColor="#ffd76e" stopOpacity="0.18" />
+            <stop offset="40%" stopColor="#ffbf30" stopOpacity="0.05" />
+            <stop offset="70%" stopColor="#ffd76e" stopOpacity="0.10" />
+            <stop offset="100%" stopColor="#000" stopOpacity="0.05" />
           </linearGradient>
         </defs>
 
@@ -107,29 +126,19 @@ const Tonearm: React.FC<TonearmProps> = ({
 
         {/* === Material-specific texture overlays === */}
 
-        {/* Wood grain */}
+        {/* Wood — warm gradient sheen */}
         {tonearmMaterial === 'wood' && (
-          <g opacity="0.22" clipPath="url(#tonearm-body-clip)">
-            {[28, 42, 56, 70, 84, 98, 112, 126, 140, 154].map(y => (
-              <line key={y} x1="11" y1={y} x2="17" y2={y + 5} stroke={fillLight} strokeWidth="0.7" />
-            ))}
-          </g>
+          <rect x="12" y="24" width="4" height="138" rx="2" fill="url(#wood-sheen)" />
         )}
 
-        {/* Brushed metal (aluminum / silver) */}
+        {/* Brushed metal (aluminum / silver) — soft reflective sheen */}
         {(tonearmMaterial === 'aluminum' || tonearmMaterial === 'silver') && (
-          <g opacity="0.14" clipPath="url(#tonearm-body-clip)">
-            {[30, 42, 54, 66, 78, 90, 102, 114, 126, 138, 150].map(y => (
-              <line key={y} x1="11" y1={y} x2="17" y2={y} stroke="#fff" strokeWidth="0.5" />
-            ))}
-          </g>
+          <rect x="12" y="24" width="4" height="138" rx="2" fill="url(#metal-sheen)" />
         )}
 
-        {/* Gold highlight */}
+        {/* Gold — warm metallic sheen */}
         {tonearmMaterial === 'gold' && (
-          <g opacity="0.18" clipPath="url(#tonearm-body-clip)">
-            <line x1="13" y1="24" x2="13" y2="162" stroke="#fff" strokeWidth="1.2" />
-          </g>
+          <rect x="12" y="24" width="4" height="138" rx="2" fill="url(#gold-sheen)" />
         )}
       </svg>
     </div>

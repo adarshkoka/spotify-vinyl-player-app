@@ -20,9 +20,10 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
   const { stage, jacketTrack, discTrack } = useTrackTransition(track, isPlaying);
   const [gradientColors, setGradientColors] = useState<ExtractedColors>(DEFAULT_COLORS);
   const { baseBackground, baseColor, baseMaterial, tonearmColor, tonearmMaterial, setBaseColor, setTonearmColor, applyMaterialPreset } = usePlayerColors();
-  const { isOpen: isTracklistOpen, tracks: tracklistTracks, selectedTrackUri, isShowingAlbum, isSupportedContext, toggleOpen: toggleTracklist, close: closeTracklist, selectTrack, showAlbum, showContext } = useTracklistPanel(contextUri, contextType, track?.album ?? null, track?.uri);
+  const { isOpen: isTracklistOpen, tracks: tracklistTracks, selectedTrackUri, panelView, isSupportedContext, toggleOpen: toggleTracklist, close: closeTracklist, selectTrack, showAlbum, showPlaylist, showQueue, goBack, addToQueue } = useTracklistPanel(contextUri, contextType, track?.album ?? null, track?.uri);
 
   const tracklistAccentColor = pickTracklistAccentColor(baseColor, tonearmColor, gradientColors.vibrantAccent);
+  const tracklistAvailable = contextType === 'playlist' || (track?.album?.total_tracks ?? 0) > 1;
 
   // Extract colors when track changes
   useEffect(() => {
@@ -72,14 +73,18 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
             isTracklistOpen={isTracklistOpen}
             tracklistTracks={tracklistTracks}
             currentTrackUri={selectedTrackUri ?? track?.uri ?? null}
+            panelView={panelView}
             isPlaylist={isSupportedContext && contextType === 'playlist'}
-            isShowingAlbum={isShowingAlbum}
             albumTrackCount={track?.album?.total_tracks}
             onToggleTracklist={toggleTracklist}
             onCloseTracklist={closeTracklist}
             onSelectTrack={selectTrack}
             onShowAlbum={() => { if (track?.album) showAlbum(track.album.id, track.album.uri); }}
-            onShowContext={showContext}
+            onShowPlaylist={showPlaylist}
+            onShowQueue={showQueue}
+            onGoBack={goBack}
+            onAddToQueue={addToQueue}
+            tracklistAvailable={tracklistAvailable}
             tracklistAccentColor={tracklistAccentColor}
           />
         </div>
@@ -91,9 +96,30 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
               <div className="song-info text-center">
                 <p className="song-title text-xl font-bold" title={track.name}>{track.name}</p>
                 <p className="song-artist text-spotify-text-subdued" title={track.artists.map(a => a.name).join(', ')}>
-                  {track.artists.map(a => a.name).join(', ')}
+                  {track.artists.map((a, i) => (
+                    <span key={a.id}>
+                      {i > 0 && ', '}
+                      <a
+                        href={`https://open.spotify.com/artist/${a.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="song-link"
+                      >
+                        {a.name}
+                      </a>
+                    </span>
+                  ))}
                 </p>
-                <p className="song-album" title={track.album.name}>{track.album.name}</p>
+                <p className="song-album" title={track.album.name}>
+                  <a
+                    href={`https://open.spotify.com/album/${track.album.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="song-link"
+                  >
+                    {track.album.name}
+                  </a>
+                </p>
               </div>
             )}
 

@@ -122,12 +122,21 @@
   width: 100%;
   aspect-ratio: 1;
   max-width: 360px;
-  background: linear-gradient(145deg, #2a2a2a 0%, #1a1a1a 100%);
+  background: linear-gradient(160deg, #2e2e2e 0%, #222 35%, #1a1a1a 70%, #151515 100%);
   border-radius: 16px;
   padding: 24px;
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.6),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    /* outer drop shadow for depth */
+    0 12px 40px rgba(0, 0, 0, 0.7),
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    /* top-left highlight edge (light source) */
+    inset 1px 1px 0 rgba(255, 255, 255, 0.09),
+    /* subtle top bevel */
+    inset 0 2px 4px rgba(255, 255, 255, 0.04),
+    /* bottom-right shadow edge (away from light) */
+    inset -1px -1px 0 rgba(0, 0, 0, 0.3),
+    /* inner shadow for recessed feel */
+    inset 0 -2px 6px rgba(0, 0, 0, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -143,58 +152,51 @@
   z-index: 1;
 }
 
+/* Shared lighting sheen applied to all texture overlays */
+.base-texture-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: radial-gradient(ellipse at 28% 15%, rgba(255, 255, 255, 0.08) 0%, transparent 55%);
+  pointer-events: none;
+}
+
 .base-texture-wood {
   background:
-    repeating-linear-gradient(
-      168deg,
-      transparent 0px,
-      transparent 6px,
-      rgba(255, 200, 120, 0.06) 6px,
-      rgba(255, 200, 120, 0.06) 7px
-    ),
-    repeating-linear-gradient(
-      165deg,
-      transparent 0px,
-      transparent 14px,
-      rgba(0, 0, 0, 0.08) 14px,
-      rgba(0, 0, 0, 0.08) 16px
-    );
+    /* Subtle warm grain — smooth organic curves, no parallel lines */
+    radial-gradient(ellipse at 20% 60%, rgba(180, 120, 60, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse at 75% 30%, rgba(160, 100, 50, 0.08) 0%, transparent 45%),
+    radial-gradient(ellipse at 50% 80%, rgba(140, 90, 40, 0.06) 0%, transparent 55%),
+    /* Top-left warm highlight */
+    radial-gradient(ellipse at 25% 15%, rgba(255, 200, 120, 0.09) 0%, transparent 50%);
 }
 
 .base-texture-aluminum {
   background:
-    repeating-linear-gradient(
-      90deg,
-      transparent 0px,
-      transparent 2px,
-      rgba(255, 255, 255, 0.03) 2px,
-      rgba(255, 255, 255, 0.03) 3px
-    ),
-    radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, 0.06) 0%, transparent 60%);
+    /* Soft anisotropic sheen — elongated highlight simulates brushed metal without lines */
+    radial-gradient(ellipse 180% 40% at 30% 20%, rgba(255, 255, 255, 0.07) 0%, transparent 70%),
+    radial-gradient(ellipse 160% 30% at 70% 70%, rgba(255, 255, 255, 0.03) 0%, transparent 60%),
+    /* Slight cool tone shift */
+    linear-gradient(160deg, rgba(200, 210, 220, 0.04) 0%, transparent 50%);
 }
 
 .base-texture-silver {
   background:
-    repeating-linear-gradient(
-      90deg,
-      transparent 0px,
-      transparent 3px,
-      rgba(255, 255, 255, 0.04) 3px,
-      rgba(255, 255, 255, 0.04) 4px
-    ),
-    radial-gradient(ellipse at 25% 15%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+    /* Brighter sheen than aluminum — crisp reflective feel */
+    radial-gradient(ellipse 180% 35% at 25% 15%, rgba(255, 255, 255, 0.12) 0%, transparent 65%),
+    radial-gradient(ellipse 140% 30% at 65% 75%, rgba(255, 255, 255, 0.04) 0%, transparent 55%),
+    linear-gradient(155deg, rgba(220, 225, 230, 0.05) 0%, transparent 45%);
 }
 
 .base-texture-gold {
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, transparent 40%, rgba(0, 0, 0, 0.05) 100%),
-    repeating-linear-gradient(
-      170deg,
-      transparent 0px,
-      transparent 10px,
-      rgba(255, 215, 0, 0.04) 10px,
-      rgba(255, 215, 0, 0.04) 11px
-    );
+    /* Rich golden sheen — warm radial highlights, no lines */
+    radial-gradient(ellipse at 30% 20%, rgba(255, 200, 80, 0.14) 0%, transparent 50%),
+    radial-gradient(ellipse at 65% 65%, rgba(255, 180, 40, 0.08) 0%, transparent 45%),
+    radial-gradient(ellipse 200% 40% at 40% 40%, rgba(255, 215, 100, 0.06) 0%, transparent 60%),
+    /* Warm directional highlight */
+    linear-gradient(145deg, rgba(255, 220, 120, 0.08) 0%, transparent 40%, rgba(0, 0, 0, 0.04) 100%);
 }
 
 .base-texture-plastic {
@@ -206,10 +208,12 @@
   width: 100%;
   aspect-ratio: 1;
   border-radius: 50%;
-  background: radial-gradient(circle, #333 0%, #222 60%, #1a1a1a 100%);
+  background: radial-gradient(circle, #333 0%, #252525 50%, #1c1c1c 80%, #1a1a1a 100%);
   box-shadow:
     inset 0 0 20px rgba(0, 0, 0, 0.5),
-    0 0 0 3px #444;
+    0 0 0 2px #3a3a3a,
+    0 0 0 3px #444,
+    0 2px 8px rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -293,10 +297,14 @@
 
 .vinyl-spindle {
   position: absolute;
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: #555;
+  background: radial-gradient(circle at 35% 35%, #aaa 0%, #888 30%, #555 65%, #333 100%);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.5),
+    0 0 0 2px rgba(255, 255, 255, 0.08),
+    inset 0 1px 2px rgba(255, 255, 255, 0.25);
   z-index: 2;
 }
 
@@ -401,10 +409,24 @@
 .tracklist-header-btns {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 4px;
   padding: 5px 8px 2px;
   flex-shrink: 0;
+}
+
+.tracklist-nav-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.tracklist-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
 }
 
 /* Album / Playlist toggle button */
@@ -531,6 +553,37 @@
   color: rgba(255, 255, 255, 0.35);
   font-size: 10px;
   font-variant-numeric: tabular-nums;
+}
+
+/* Add to queue button */
+.add-to-queue-btn {
+  flex-shrink: 0;
+  border: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 10px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color 0.15s, background 0.15s;
+  line-height: 1;
+}
+.add-to-queue-btn:hover {
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.add-to-queue-done {
+  width: 16px;
+  color: #1DB954;
+  background: rgba(29, 185, 84, 0.1);
+  pointer-events: none;
+  font-size: 9px;
 }
 
 /* ============================
@@ -667,6 +720,15 @@
   overflow: hidden;
   text-overflow: ellipsis;
   margin-top: 0.1rem;
+}
+
+.song-link {
+  color: inherit;
+  text-decoration: none;
+  transition: text-decoration 0.15s ease;
+}
+.song-link:hover {
+  text-decoration: underline;
 }
 
 /* ============================
