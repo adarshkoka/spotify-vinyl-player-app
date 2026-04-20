@@ -3,7 +3,9 @@ import LoginPage from './pages/LoginPage';
 import MainAppPage from './pages/MainAppPage';
 
 const isAuthenticated = () => {
-  return localStorage.getItem('spotify_access_token') !== null;
+  const token = localStorage.getItem('spotify_access_token');
+  const refreshToken = localStorage.getItem('spotify_refresh_token');
+  return token !== null || refreshToken !== null;
 };
 
 function App() {
@@ -72,6 +74,13 @@ function App() {
 
         if (response.ok && data.access_token) {
           localStorage.setItem('spotify_access_token', data.access_token);
+          if (data.refresh_token) {
+            localStorage.setItem('spotify_refresh_token', data.refresh_token);
+          }
+          if (data.expires_in) {
+            const expiresAt = Date.now() + data.expires_in * 1000;
+            localStorage.setItem('spotify_token_expires_at', String(expiresAt));
+          }
           localStorage.removeItem('spotify_code_verifier');
           window.dispatchEvent(new Event('authChange'));
         } else {
@@ -113,6 +122,8 @@ function App() {
 
   const handleLogout = () => {
     localStorage.removeItem('spotify_access_token');
+    localStorage.removeItem('spotify_refresh_token');
+    localStorage.removeItem('spotify_token_expires_at');
     localStorage.removeItem('spotify_code_verifier');
     localStorage.removeItem('spotify_auth_state');
     window.dispatchEvent(new Event('authChange'));

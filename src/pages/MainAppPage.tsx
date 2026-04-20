@@ -8,7 +8,7 @@ import RoomScene from '../components/RoomScene';
 import RecordPlayer from '../components/RecordPlayer';
 import PlayerControls from '../components/PlayerControls';
 import ColorCustomizer from '../components/ColorCustomizer';
-import { extractColors, DEFAULT_COLORS, type ExtractedColors } from '../utils/colorExtractor';
+import { extractColors, DEFAULT_COLORS, pickTracklistAccentColor, type ExtractedColors } from '../utils/colorExtractor';
 import { SPOTIFY_POLL_INTERVAL } from '../config';
 
 interface MainAppPageProps {
@@ -20,7 +20,9 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
   const { stage, jacketTrack, discTrack } = useTrackTransition(track, isPlaying);
   const [gradientColors, setGradientColors] = useState<ExtractedColors>(DEFAULT_COLORS);
   const { baseBackground, baseColor, baseMaterial, tonearmColor, tonearmMaterial, setBaseColor, setTonearmColor, applyMaterialPreset } = usePlayerColors();
-  const { isOpen: isTracklistOpen, tracks: tracklistTracks, isLoadingTracks, selectedTrackUri, isShowingAlbum, isSupportedContext, toggleOpen: toggleTracklist, close: closeTracklist, selectTrack, showAlbum, showContext } = useTracklistPanel(contextUri, contextType, track?.album ?? null);
+  const { isOpen: isTracklistOpen, tracks: tracklistTracks, selectedTrackUri, isShowingAlbum, isSupportedContext, toggleOpen: toggleTracklist, close: closeTracklist, selectTrack, showAlbum, showContext } = useTracklistPanel(contextUri, contextType, track?.album ?? null, track?.uri);
+
+  const tracklistAccentColor = pickTracklistAccentColor(baseColor, tonearmColor, gradientColors.vibrantAccent);
 
   // Extract colors when track changes
   useEffect(() => {
@@ -58,10 +60,8 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
         {/* Record player */}
         <div className="relative w-full flex justify-center">
           <RecordPlayer
-            track={track}
             jacketTrack={jacketTrack}
             discTrack={discTrack}
-            isPlaying={isPlaying}
             transitionStage={stage}
             onTogglePlayback={togglePlayback}
             baseBackground={baseBackground}
@@ -71,15 +71,16 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
             tonearmMaterial={tonearmMaterial}
             isTracklistOpen={isTracklistOpen}
             tracklistTracks={tracklistTracks}
-            isLoadingTracks={isLoadingTracks}
             currentTrackUri={selectedTrackUri ?? track?.uri ?? null}
             isPlaylist={isSupportedContext && contextType === 'playlist'}
             isShowingAlbum={isShowingAlbum}
+            albumTrackCount={track?.album?.total_tracks}
             onToggleTracklist={toggleTracklist}
             onCloseTracklist={closeTracklist}
             onSelectTrack={selectTrack}
             onShowAlbum={() => { if (track?.album) showAlbum(track.album.id, track.album.uri); }}
             onShowContext={showContext}
+            tracklistAccentColor={tracklistAccentColor}
           />
         </div>
 

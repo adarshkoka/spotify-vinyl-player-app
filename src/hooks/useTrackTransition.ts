@@ -34,6 +34,7 @@ export function useTrackTransition(
   const [discTrack, setDiscTrack] = useState<SpotifyTrack | null>(null);
 
   const loadedTrackIdRef = useRef<string | null>(null);
+  const loadedAlbumUriRef = useRef<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearTimer = useCallback(() => {
@@ -56,6 +57,7 @@ export function useTrackTransition(
     // Track removed
     if (!newTrackId) {
       loadedTrackIdRef.current = null;
+      loadedAlbumUriRef.current = null;
       if (oldTrackId) {
         // Had a disc loaded → quick fade then empty
         setStage('eject');
@@ -72,9 +74,22 @@ export function useTrackTransition(
       return;
     }
 
-    // New track arriving — immediately clear old visuals and start fresh
+    // New track arriving
     loadedTrackIdRef.current = newTrackId;
 
+    // Same album — skip the full animation, just swap the track reference in place
+    if (
+      currentTrack!.album.uri === loadedAlbumUriRef.current &&
+      (stage === 'playing' || stage === 'paused')
+    ) {
+      setJacketTrack(currentTrack!);
+      setDiscTrack(currentTrack!);
+      setStage(isPlaying ? 'playing' : 'paused');
+      return;
+    }
+
+    // Different album — run the full jacket+disc animation
+    loadedAlbumUriRef.current = currentTrack!.album.uri;
     setJacketTrack(currentTrack!);
     setDiscTrack(currentTrack!);
     setStage('jacket-enter');

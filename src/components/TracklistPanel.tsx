@@ -10,11 +10,11 @@ function formatDuration(ms: number): string {
 interface TracklistPanelProps {
   isOpen: boolean;
   tracks: ContextTrack[];
-  isLoading: boolean;
   currentTrackUri: string | null;
   accentColor: string;
   isPlaylist: boolean;
   isShowingAlbum: boolean;
+  albumTrackCount?: number;
   onSelectTrack: (trackUri: string) => void;
   onClose: () => void;
   onShowAlbum?: () => void;
@@ -24,11 +24,11 @@ interface TracklistPanelProps {
 const TracklistPanel: React.FC<TracklistPanelProps> = ({
   isOpen,
   tracks,
-  isLoading,
   currentTrackUri,
   accentColor,
   isPlaylist,
   isShowingAlbum,
+  albumTrackCount,
   onSelectTrack,
   onClose,
   onShowAlbum,
@@ -39,7 +39,7 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
       <div className="tracklist-panel-inner">
         {/* Header buttons */}
         <div className="tracklist-header-btns">
-          {isPlaylist && (
+          {isPlaylist && (!albumTrackCount || albumTrackCount > 1) && (
             <button
               className={`tracklist-toggle-btn ${isShowingAlbum ? 'tracklist-toggle-active' : ''}`}
               onClick={isShowingAlbum ? onShowContext : onShowAlbum}
@@ -56,10 +56,7 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
 
         {/* Track list */}
         <div className="tracklist-scroll">
-          {isLoading && (
-            <div className="tracklist-loading">Loading tracks...</div>
-          )}
-          {!isLoading && tracks.map((t) => (
+          {tracks.map((t) => (
             <button
               key={t.uri}
               className={`tracklist-item ${t.uri === currentTrackUri ? 'tracklist-item-active' : ''}`}

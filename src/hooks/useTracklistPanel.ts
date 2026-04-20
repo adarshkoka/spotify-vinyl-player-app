@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   getAlbumTracks,
   getPlaylistTracks,
@@ -9,7 +9,6 @@ import {
 interface UseTracklistPanelReturn {
   isOpen: boolean;
   tracks: ContextTrack[];
-  isLoadingTracks: boolean;
   selectedTrackUri: string | null;
   isShowingAlbum: boolean;
   isSupportedContext: boolean;
@@ -24,10 +23,10 @@ export function useTracklistPanel(
   contextUri: string | null,
   contextType: string | null,
   fallbackAlbum?: { id: string; uri: string } | null,
+  currentTrackUri?: string | null,
 ): UseTracklistPanelReturn {
   const [isOpen, setIsOpen] = useState(false);
   const [tracks, setTracks] = useState<ContextTrack[]>([]);
-  const [isLoadingTracks, setIsLoadingTracks] = useState(false);
   const [selectedTrackUri, setSelectedTrackUri] = useState<string | null>(null);
   const [isShowingAlbum, setIsShowingAlbum] = useState(false);
   const [overrideUri, setOverrideUri] = useState<string | null>(null);
@@ -43,7 +42,6 @@ export function useTracklistPanel(
       return;
     }
 
-    setIsLoadingTracks(true);
     try {
       const parts = uri.split(':');
       const id = parts[parts.length - 1];
@@ -60,13 +58,33 @@ export function useTracklistPanel(
     } catch (err) {
       console.error('Failed to fetch context tracks:', err);
       setTracks([]);
-    } finally {
-      setIsLoadingTracks(false);
     }
   }, []);
 
   // Whether the current context is fetchable (album or playlist)
   const isSupportedContext = contextType === 'album' || contextType === 'playlist';
+
+  // Clear stale selection when the actual playing track changes (e.g. external skip)
+  useEffect(() => {
+    setSelectedTrackUri(null);
+  }, [currentTrackUri]);
+
+  // When context changes while panel is open, reset overrides and re-fetch
+  const prevEffectiveUriRef = useRef<string | null>(null);
+  useEffect(() => {
+    const effectiveUri = isSupportedContext ? contextUri : fallbackAlbum?.uri ?? null;
+    if (prevEffectiveUriRef.current !== null && effectiveUri !== prevEffectiveUriRef.current) {
+      // Context changed — reset album/playlist override
+      setIsShowingAlbum(false);
+      setOverrideUri(null);
+      setOverrideType(null);
+      if (isOpen && effectiveUri) {
+        const type = isSupportedContext ? contextType! : 'album';
+        fetchTracksFor(effectiveUri, type);
+      }
+    }
+    prevEffectiveUriRef.current = effectiveUri;
+  }, [contextUri, fallbackAlbum?.uri, isSupportedContext, contextType, isOpen, fetchTracksFor]);
 
   const fetchTracks = useCallback(async () => {
     const uri = overrideUri ?? (isSupportedContext ? contextUri : fallbackAlbum?.uri ?? null);
@@ -129,7 +147,6 @@ export function useTracklistPanel(
   return {
     isOpen,
     tracks,
-    isLoadingTracks,
     selectedTrackUri,
     isShowingAlbum,
     isSupportedContext,

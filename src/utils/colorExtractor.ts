@@ -3,6 +3,7 @@ export interface ExtractedColors {
   secondary: string;
   accent: string;
   dark: string;
+  vibrantAccent: string;
 }
 
 const DEFAULT_COLORS: ExtractedColors = {
@@ -10,6 +11,7 @@ const DEFAULT_COLORS: ExtractedColors = {
   secondary: '#16213e',
   accent: '#0f3460',
   dark: '#0a0a1a',
+  vibrantAccent: '#1DB954',
 };
 
 /**
@@ -60,6 +62,9 @@ export function extractColors(imageUrl: string): Promise<ExtractedColors> {
       // Sort by brightness: darkest first
       diverse.sort((a, b) => brightness(a) - brightness(b));
 
+      // Brightest undarkened color — used for foreground accents
+      const brightestRaw = diverse[diverse.length - 1];
+
       // Darken all colors to be suitable as backgrounds
       const colors = diverse.map(c => darken(c, 0.35));
 
@@ -68,6 +73,7 @@ export function extractColors(imageUrl: string): Promise<ExtractedColors> {
         primary: toRgb(colors[1] || colors[0]),
         secondary: toRgb(colors[2] || colors[1] || colors[0]),
         accent: toRgb(colors[3] || colors[2] || colors[1] || colors[0]),
+        vibrantAccent: toRgb(brightestRaw || colors[3] || colors[0]),
       });
     };
 
@@ -190,6 +196,69 @@ function darken([r, g, b]: [number, number, number], factor: number): [number, n
 
 function toRgb([r, g, b]: [number, number, number]): string {
   return `rgb(${r}, ${g}, ${b})`;
+}
+
+/** Parse any CSS color string (#hex, rgb(...)) into [r, g, b] or null. */
+function parseColor(color: string): [number, number, number] | null {
+  const hex = color.trim();
+  if (hex.startsWith('#')) {
+    const full = hex.length === 4
+      ? `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}`
+      : hex;
+    const r = parseInt(full.slice(1, 3), 16);
+    const g = parseInt(full.slice(3, 5), 16);
+    const b = parseInt(full.slice(5, 7), 16);
+    if (isNaN(r) || isNaN(g) || isNaN(b)) return null;
+    return [r, g, b];
+  }
+  const m = hex.match(/rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/i);
+  if (m) return [parseInt(m[1]), parseInt(m[2]), parseInt(m[3])];
+  return null;
+}
+
+const SPOTIFY_GREEN = '#1DB954';
+
+/** Returns the saturation (0-1) of an RGB color to detect grays. */
+function saturation([r, g, b]: [number, number, number]): number {
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  if (max === 0) return 0;
+  return (max - min) / max;
+}
+
+/**
+ * Returns true if a color is unsuitable as a highlight on a dark background.
+ * Filters: near-blacks, very dark colors, and desaturated grays/silvers.
+ */
+function isProblematic(parsed: [number, number, number]): boolean {
+  const b = brightness(parsed);
+  const s = saturation(parsed);
+  // Very dark — unreadable on the dark panel
+  if (b < 50) return true;
+  // Medium brightness but no color — gray/silver look disabled
+  if (b < 140 && s < 0.2) return true;
+  return false;
+}
+
+/**
+ * Pick the best highlight color for the tracklist panel from a priority list.
+ * Priority: vibrantAccent (from album art) → baseColor → tonearmColor → Spotify green
+ */
+export function pickTracklistAccentColor(
+  baseColor: string,
+  tonearmColor: string,
+  vibrantAccent: string,
+): string {
+  const candidates = [vibrantAccent, baseColor, tonearmColor];
+
+  for (const c of candidates) {
+    const parsed = parseColor(c);
+    if (parsed && !isProblematic(parsed)) {
+      return c;
+    }
+  }
+
+  return SPOTIFY_GREEN;
 }
 
 export { DEFAULT_COLORS };

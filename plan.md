@@ -34,3 +34,47 @@ Entity Separation: The "Jacket" and the "Disc" must be defined as distinct visua
 Z-Index Management: The system must support depth-layering so the disc appears to "emerge" from the interior of the sleeve before moving to the foreground layer of the player.
 
 State-Driven Transitions: Transition triggers must be tied to Spotify’s track_id state. A change in ID should automatically fire the "Eject/Load" sequence, ensuring the visual representation stays in lockstep with the audio stream.
+---------------------------------------------------------------------------------------
+
+## Phase 1: Core — Authentication, Playback & Controls
+
+- Spotify OAuth login using the Authorization Code with PKCE flow (code verifier, challenge, token exchange)
+- Login landing page with "Login with Spotify" button; logout button in-app
+- Polling the Spotify Web API for the currently playing track and playback state, with automatic refetch on tab visibility change
+- Display of current track info: song name, artist(s), album name, and album art
+- Play/pause toggle, skip forward, and skip back controls
+- Spotify API service layer handling token refresh, pagination, and error states
+- Main app page orchestrating all hooks and components together
+
+---------------------------------------------------------------------------------------
+
+## Phase 2: Visual Polish — Animations, Room Scene & Customization
+
+- Multi-stage track transition animation state machine:
+  - Jacket slides in from the left
+  - Vinyl disc emerges from behind the jacket
+  - Disc slides to center, rests briefly, then lifts and scales up onto the platter
+  - Quick fade-out eject when a track is removed with no replacement
+- All animation durations centralized in a config file and injected as CSS custom properties so JS and CSS stay in sync automatically
+- Spinning vinyl disc on the platter synced to playback state (spins when playing, stops when paused)
+- Tonearm that moves between resting and playing positions
+- Fullscreen room scene with a dynamic gradient background extracted from the current album art using k-means color clustering
+- Smooth crossfade transition between gradients when the track changes
+- Customizable record player base and tonearm colors with material presets (Wood, Aluminum, Silver, Gold) and a hex color picker
+- Color/material selections persisted to localStorage
+- Layout spacing variables centralized in config with safe-range clamping
+
+---------------------------------------------------------------------------------------
+
+## Phase 3: Tracklist Panel — Track Browsing, Context Switching & Playback
+
+- Clickable album jacket that opens an expandable tracklist panel below the record player using a CSS grid collapse animation
+- Each track in the panel displays track number, name, artist, and formatted duration
+- Currently playing track highlighted with the user's chosen accent color
+- Clicking a track in the panel plays it within its context (album or playlist) via the Spotify API
+- Panel stays open after selecting a track for continued browsing
+- Album/Playlist toggle button when listening from a playlist: switch to the album's tracks or back to the playlist
+- Smart context fallback: when the playback context is not a standard album or playlist (e.g. Liked Songs, radio), the panel automatically shows the current track's album instead, with the toggle button hidden
+- Track data cached per context URI to avoid redundant API calls
+- Jacket becomes clickable as soon as it finishes entering, without waiting for the full disc animation to complete
+- Song info hidden while the tracklist panel is open to save vertical space

@@ -4,7 +4,6 @@ import type { MaterialPreset } from '../hooks/usePlayerColors';
 
 interface TonearmProps {
   transitionStage: TransitionStage;
-  isPlaying: boolean;
   tonearmColor?: string;
   tonearmMaterial?: MaterialPreset;
 }
@@ -15,21 +14,13 @@ function getTonearmClass(stage: TransitionStage): string {
   return 'tonearm-resting';
 }
 
-function darkenHex(hex: string, amount: number): string {
+function adjustHex(hex: string, amount: number): string {
   const cleaned = hex.replace('#', '');
   if (!/^[0-9a-fA-F]{6}$/.test(cleaned)) return hex;
-  const r = Math.max(0, parseInt(cleaned.slice(0, 2), 16) - amount);
-  const g = Math.max(0, parseInt(cleaned.slice(2, 4), 16) - amount);
-  const b = Math.max(0, parseInt(cleaned.slice(4, 6), 16) - amount);
-  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-}
-
-function lightenHex(hex: string, amount: number): string {
-  const cleaned = hex.replace('#', '');
-  if (!/^[0-9a-fA-F]{6}$/.test(cleaned)) return hex;
-  const r = Math.min(255, parseInt(cleaned.slice(0, 2), 16) + amount);
-  const g = Math.min(255, parseInt(cleaned.slice(2, 4), 16) + amount);
-  const b = Math.min(255, parseInt(cleaned.slice(4, 6), 16) + amount);
+  const clamp = (v: number) => Math.max(0, Math.min(255, v));
+  const r = clamp(parseInt(cleaned.slice(0, 2), 16) + amount);
+  const g = clamp(parseInt(cleaned.slice(2, 4), 16) + amount);
+  const b = clamp(parseInt(cleaned.slice(4, 6), 16) + amount);
   return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
 
@@ -40,8 +31,8 @@ const Tonearm: React.FC<TonearmProps> = ({
 }) => {
   const posClass = getTonearmClass(transitionStage);
   const fill = tonearmColor;
-  const fillDark = darkenHex(tonearmColor, 20);
-  const fillLight = lightenHex(tonearmColor, 25);
+  const fillDark = adjustHex(tonearmColor, -20);
+  const fillLight = adjustHex(tonearmColor, 25);
 
   return (
     <div className={`tonearm-container ${posClass}`}>

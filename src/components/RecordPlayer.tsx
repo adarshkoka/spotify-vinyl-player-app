@@ -8,10 +8,8 @@ import type { SpotifyTrack, ContextTrack } from '../services/spotifyService';
 import type { MaterialPreset } from '../hooks/usePlayerColors';
 
 interface RecordPlayerProps {
-  track: SpotifyTrack | null;
   jacketTrack: SpotifyTrack | null;
   discTrack: SpotifyTrack | null;
-  isPlaying: boolean;
   transitionStage: TransitionStage;
   onTogglePlayback: () => void;
   baseBackground?: string | null;
@@ -22,15 +20,16 @@ interface RecordPlayerProps {
   // Tracklist panel props
   isTracklistOpen?: boolean;
   tracklistTracks?: ContextTrack[];
-  isLoadingTracks?: boolean;
   currentTrackUri?: string | null;
   isPlaylist?: boolean;
   isShowingAlbum?: boolean;
+  albumTrackCount?: number;
   onToggleTracklist?: () => void;
   onCloseTracklist?: () => void;
   onSelectTrack?: (trackUri: string) => void;
   onShowAlbum?: () => void;
   onShowContext?: () => void;
+  tracklistAccentColor?: string;
 }
 
 function getAlbumArtUrl(track: SpotifyTrack | null): string | null {
@@ -48,7 +47,6 @@ function getTextureClass(material: MaterialPreset): string {
 const RecordPlayer: React.FC<RecordPlayerProps> = ({
   jacketTrack,
   discTrack,
-  isPlaying,
   transitionStage,
   onTogglePlayback,
   baseBackground,
@@ -58,15 +56,16 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
   tonearmMaterial,
   isTracklistOpen = false,
   tracklistTracks = [],
-  isLoadingTracks = false,
   currentTrackUri = null,
   isPlaylist = false,
   isShowingAlbum = false,
+  albumTrackCount,
   onToggleTracklist,
   onCloseTracklist,
   onSelectTrack,
   onShowAlbum,
   onShowContext,
+  tracklistAccentColor,
 }) => {
   const discArt = getAlbumArtUrl(discTrack);
   const jacketArt = getAlbumArtUrl(jacketTrack);
@@ -89,7 +88,6 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
         {/* Tonearm — absolutely positioned inside the base */}
         <Tonearm
           transitionStage={transitionStage}
-          isPlaying={isPlaying}
           tonearmColor={tonearmColor}
           tonearmMaterial={tonearmMaterial}
         />
@@ -137,11 +135,11 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
       <TracklistPanel
         isOpen={isTracklistOpen}
         tracks={tracklistTracks}
-        isLoading={isLoadingTracks}
         currentTrackUri={currentTrackUri}
-        accentColor={baseColor}
+        accentColor={tracklistAccentColor ?? baseColor}
         isPlaylist={isPlaylist}
         isShowingAlbum={isShowingAlbum}
+        albumTrackCount={albumTrackCount}
         onSelectTrack={onSelectTrack ?? (() => {})}
         onClose={onCloseTracklist ?? (() => {})}
         onShowAlbum={onShowAlbum}
