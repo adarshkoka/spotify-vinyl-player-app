@@ -58,6 +58,7 @@ export function useDiscScrub({
   const elementRef = useRef<DOMRect | null>(null);
   const wasPlayingRef = useRef(false);
   const skippedRef = useRef(false);
+  const hasDraggedRef = useRef(false);
   const skipBlinkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Refs for stable callbacks in event listeners
@@ -69,7 +70,7 @@ export function useDiscScrub({
   durationMsRef.current = durationMs;
 
   const handlePointerMove = useCallback((e: PointerEvent) => {
-    if (!elementRef.current || skippedRef.current) return;
+    if (!elementRef.current) return;
     const currentAngle = getAngleFromCenter(e.clientX, e.clientY, elementRef.current);
     let delta = currentAngle - lastAngleRef.current;
 
@@ -79,6 +80,16 @@ export function useDiscScrub({
 
     totalDeltaRef.current += delta;
     lastAngleRef.current = currentAngle;
+
+    // Only activate scrubbing after the pointer has moved meaningfully.
+    // This lets a simple tap pass through as a click (play/pause).
+    if (!hasDraggedRef.current) {
+      if (Math.abs(totalDeltaRef.current) < 3) return;
+      hasDraggedRef.current = true;
+      setIsScrubbing(true);
+    }
+
+    if (skippedRef.current) return;
 
     setScrubAngle(totalDeltaRef.current);
 
@@ -133,6 +144,14 @@ export function useDiscScrub({
     document.removeEventListener('pointermove', handlePointerMove);
     document.removeEventListener('pointerup', handlePointerUp);
 
+    // Tap with no meaningful drag — let the click event handle play/pause
+    if (!hasDraggedRef.current) {
+      setScrubDirection('none');
+      setIsScrubbing(false);
+      setScrubAngle(0);
+      return;
+    }
+
     // If we already skipped mid-drag, nothing to do
     if (skippedRef.current) return;
 
@@ -162,7 +181,9 @@ export function useDiscScrub({
 
   const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (!canScrub) return;
-    e.preventDefault();
+    // Do NOT call e.preventDefault() here — it suppresses the synthetic click
+    // event on mobile, which would break tap-to-pause. touch-action:none on the
+    // element handles scroll/zoom prevention instead.
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
 
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -175,8 +196,9 @@ export function useDiscScrub({
     progressAtStartRef.current = progressMs;
     wasPlayingRef.current = isPlaying;
     skippedRef.current = false;
+    hasDraggedRef.current = false;
 
-    setIsScrubbing(true);
+    // Don't set isScrubbing yet — wait until actual movement crosses threshold
     setScrubAngle(0);
 
     document.addEventListener('pointermove', handlePointerMove);

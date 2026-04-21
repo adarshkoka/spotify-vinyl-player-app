@@ -20,7 +20,7 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
   const { stage, jacketTrack, discTrack } = useTrackTransition(track, isPlaying);
   const [gradientColors, setGradientColors] = useState<ExtractedColors>(DEFAULT_COLORS);
   const { baseBackground, baseColor, baseMaterial, tonearmColor, tonearmMaterial, setBaseColor, setTonearmColor, applyMaterialPreset } = usePlayerColors();
-  const { isOpen: isTracklistOpen, tracks: tracklistTracks, selectedTrackUri, panelView, isSupportedContext, toggleOpen: toggleTracklist, close: closeTracklist, selectTrack, showAlbum, showPlaylist, showQueue, goBack, addToQueue } = useTracklistPanel(contextUri, contextType, track?.album ?? null, track?.uri);
+  const { isOpen: isTracklistOpen, isLoading: isTracklistLoading, tracks: tracklistTracks, selectedTrackUri, panelView, isSupportedContext, toggleOpen: toggleTracklist, close: closeTracklist, selectTrack, showAlbum, showPlaylist, showQueue, goBack, addToQueue } = useTracklistPanel(contextUri, contextType, track?.album ?? null, track?.uri);
 
   const canScrub = stage === 'playing' || stage === 'paused';
   const { isScrubbing, scrubAngle, scrubDirection, ledSkip, handlers: scrubHandlers } = useDiscScrub({
@@ -86,6 +86,7 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
             scrubDirection={scrubDirection}
             ledSkip={ledSkip}
             isTracklistOpen={isTracklistOpen}
+            isTracklistLoading={isTracklistLoading}
             tracklistTracks={tracklistTracks}
             currentTrackUri={selectedTrackUri ?? track?.uri ?? null}
             panelView={panelView}

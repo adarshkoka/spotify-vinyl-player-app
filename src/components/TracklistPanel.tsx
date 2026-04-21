@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { ContextTrack } from '../services/spotifyService';
 import type { PanelView } from '../hooks/useTracklistPanel';
 
@@ -10,6 +10,7 @@ function formatDuration(ms: number): string {
 
 interface TracklistPanelProps {
   isOpen: boolean;
+  isLoading?: boolean;
   tracks: ContextTrack[];
   currentTrackUri: string | null;
   accentColor: string;
@@ -45,6 +46,7 @@ const AddToQueueButton: React.FC<{
 
 const TracklistPanel: React.FC<TracklistPanelProps> = ({
   isOpen,
+  isLoading = false,
   tracks,
   currentTrackUri,
   accentColor,
@@ -63,6 +65,17 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
   const showAlbumBtn = isPlaylist && (!albumTrackCount || albumTrackCount > 1);
   const panelTitle = panelView === 'playlist' ? 'Playlist' : panelView === 'album' ? 'Album' : 'Queue';
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Scroll the active track into view whenever tracks finish loading or the panel opens
+  useEffect(() => {
+    if (!isOpen || isLoading || !currentTrackUri || !scrollRef.current) return;
+    const active = scrollRef.current.querySelector<HTMLElement>('.tracklist-item-active');
+    if (active) {
+      active.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }, [isOpen, isLoading, tracks, currentTrackUri]);
+
   return (
     <div className={`tracklist-panel ${isOpen ? 'tracklist-panel-open' : ''}`}>
       <div className="tracklist-panel-inner">
@@ -73,8 +86,11 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
             {panelView === 'playlist' && showAlbumBtn && (
               <button className="tracklist-toggle-btn" onClick={onShowAlbum}>← Album</button>
             )}
+            {panelView === 'album' && isPlaylist && (
+              <button className="tracklist-toggle-btn" onClick={onShowPlaylist}>← Playlist</button>
+            )}
             {panelView === 'queue' && (
-              <button className="tracklist-toggle-btn" onClick={onGoBack}>← Playlist</button>
+              <button className="tracklist-toggle-btn" onClick={onGoBack}>← Back</button>
             )}
           </div>
 
@@ -86,8 +102,8 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
             {panelView === 'playlist' && (
               <button className="tracklist-toggle-btn" onClick={onShowQueue}>Queue →</button>
             )}
-            {panelView === 'album' && isPlaylist && (
-              <button className="tracklist-toggle-btn" onClick={onShowPlaylist}>Playlist →</button>
+            {panelView === 'album' && (
+              <button className="tracklist-toggle-btn" onClick={onShowQueue}>Queue →</button>
             )}
             <button className="tracklist-close-btn" onClick={onClose} aria-label="Close tracklist">
               <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
@@ -98,8 +114,16 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
         </div>
 
         {/* Track list */}
-        <div className="tracklist-scroll">
-          {tracks.map((t) => (
+        <div className="tracklist-scroll" ref={scrollRef}>
+          {isLoading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="tracklist-skeleton-row">
+                <div className="tracklist-skeleton-title" />
+                <div className="tracklist-skeleton-artist" />
+              </div>
+            ))
+          ) : (
+            tracks.map((t) => (
             <button
               key={`${t.uri}-${t.track_number}`}
               className={`tracklist-item ${t.uri === currentTrackUri ? 'tracklist-item-active' : ''}`}
@@ -126,7 +150,8 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
               )}
               <span className="tracklist-dur">{formatDuration(t.duration_ms)}</span>
             </button>
-          ))}
+          ))
+          )}
         </div>
       </div>
     </div>

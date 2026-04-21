@@ -15,8 +15,8 @@ export const MATERIAL_PRESETS: MaterialPresetDef[] = [
   {
     id: 'wood',
     label: 'Wood',
-    color: '#3b1f0c',
-    gradient: 'linear-gradient(145deg, #6a3d1d 0%, #4a2813 34%, #3b1f0c 64%, #241106 100%)',
+    color: '#4a1410',
+    gradient: 'linear-gradient(145deg, #7a2e1a 0%, #5c1e12 34%, #40120c 64%, #260805 100%)',
   },
   {
     id: 'aluminum',
@@ -33,8 +33,8 @@ export const MATERIAL_PRESETS: MaterialPresetDef[] = [
   {
     id: 'gold',
     label: 'Gold',
-    color: '#a06d0a',
-    gradient: 'linear-gradient(145deg, #f0cf71 0%, #d39a24 22%, #a06d0a 58%, #6c4304 100%)',
+    color: '#8c5e08',
+    gradient: 'linear-gradient(145deg, #c89018 0%, #a87010 22%, #7c4c06 58%, #4e2e02 100%)',
   },
 ];
 

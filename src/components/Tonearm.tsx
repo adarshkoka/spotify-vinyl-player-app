@@ -29,10 +29,10 @@ function adjustHex(hex: string, amount: number): string {
    competing diagonal gradients.  light = body/headshell/pivot-outer,
    dark = counterweight/pivot-inner/cartridge, edge = highlight arc. */
 const MATERIAL_PALETTE: Record<string, { light: string; dark: string; edge: string }> = {
-  wood:     { light: '#5c3317', dark: '#331808', edge: 'rgba(255,215,160,0.22)' },
-  aluminum: { light: '#6d7880', dark: '#3a4248', edge: 'rgba(210,220,230,0.18)' },
-  silver:   { light: '#a8b0b8', dark: '#5e666e', edge: 'rgba(245,248,252,0.25)' },
-  gold:     { light: '#c99520', dark: '#6e4804', edge: 'rgba(255,235,160,0.3)' },
+  wood:     { light: '#7a2e1a', dark: '#40120c', edge: 'rgba(255,210,160,0.18)' },
+  aluminum: { light: '#b2bac2', dark: '#3f474e', edge: 'rgba(220,230,240,0.22)' },
+  silver:   { light: '#e0e4e8', dark: '#7d848c', edge: 'rgba(255,255,255,0.22)' },
+  gold:     { light: '#ffd76e', dark: '#a87010', edge: 'rgba(255,245,200,0.32)' },
 };
 
 const Tonearm: React.FC<TonearmProps> = ({
@@ -68,29 +68,29 @@ const Tonearm: React.FC<TonearmProps> = ({
         <defs>
           {/* Plastic / glossy cylinder sheen */}
           <linearGradient id="plastic-sheen" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%"   stopColor="#fff" stopOpacity="0.12" />
-            <stop offset="40%"  stopColor="#fff" stopOpacity="0.02" />
+            <stop offset="0%"   stopColor="#fff" stopOpacity="0.13" />
+            <stop offset="40%"  stopColor="#fff" stopOpacity="0.03" />
             <stop offset="100%" stopColor="#000" stopOpacity="0.08" />
           </linearGradient>
-          {/* Wood — warm left-to-right cylinder highlight */}
+          {/* Wood — cherry highlight, subtle warm gloss */}
           <linearGradient id="wood-sheen" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%"   stopColor="#d4a060" stopOpacity="0.18" />
-            <stop offset="45%"  stopColor="#c08040" stopOpacity="0.03" />
-            <stop offset="100%" stopColor="#000"    stopOpacity="0.08" />
+            <stop offset="0%"   stopColor="#f2b07a" stopOpacity="0.16" />
+            <stop offset="38%"  stopColor="#e07a2e" stopOpacity="0.04" />
+            <stop offset="100%" stopColor="#000"    stopOpacity="0.07" />
           </linearGradient>
-          {/* Brushed metal — left-to-right highlight bands */}
+          {/* Brushed aluminum — cool, crisp highlight */}
           <linearGradient id="metal-sheen" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%"   stopColor="#fff" stopOpacity="0.14" />
-            <stop offset="30%"  stopColor="#fff" stopOpacity="0.02" />
-            <stop offset="60%"  stopColor="#fff" stopOpacity="0.08" />
-            <stop offset="100%" stopColor="#000" stopOpacity="0.06" />
-          </linearGradient>
-          {/* Gold — warm left-to-right highlight */}
-          <linearGradient id="gold-sheen" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%"   stopColor="#ffd76e" stopOpacity="0.22" />
-            <stop offset="40%"  stopColor="#ffbf30" stopOpacity="0.04" />
-            <stop offset="70%"  stopColor="#ffd76e" stopOpacity="0.12" />
+            <stop offset="0%"   stopColor="#f8fcff" stopOpacity="0.18" />
+            <stop offset="32%"  stopColor="#e0e4e8" stopOpacity="0.04" />
+            <stop offset="68%"  stopColor="#b2bac2" stopOpacity="0.10" />
             <stop offset="100%" stopColor="#000"    stopOpacity="0.06" />
+          </linearGradient>
+          {/* Gold — broad, luminous highlight */}
+          <linearGradient id="gold-sheen" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%"   stopColor="#fff8c8" stopOpacity="0.32" />
+            <stop offset="32%"  stopColor="#ffe48a" stopOpacity="0.12" />
+            <stop offset="60%"  stopColor="#ffd76e" stopOpacity="0.22" />
+            <stop offset="100%" stopColor="#a87010" stopOpacity="0.10" />
           </linearGradient>
         </defs>
 

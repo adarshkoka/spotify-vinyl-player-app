@@ -13,6 +13,7 @@ export type PanelView = 'playlist' | 'album' | 'queue';
 
 interface UseTracklistPanelReturn {
   isOpen: boolean;
+  isLoading: boolean;
   tracks: ContextTrack[];
   selectedTrackUri: string | null;
   panelView: PanelView;
@@ -34,6 +35,7 @@ export function useTracklistPanel(
   currentTrackUri?: string | null,
 ): UseTracklistPanelReturn {
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [tracks, setTracks] = useState<ContextTrack[]>([]);
   const [selectedTrackUri, setSelectedTrackUri] = useState<string | null>(null);
   const [panelView, setPanelView] = useState<PanelView>('playlist');
@@ -197,8 +199,13 @@ export function useTracklistPanel(
     setOverrideUri(albumUri);
     setOverrideType('album');
     // Clear stale tracks only when not cached to prevent old panel tracks flashing
-    if (!cacheRef.current[albumUri]) setTracks([]);
-    fetchTracksFor(albumUri, 'album');
+    if (!cacheRef.current[albumUri]) {
+      setTracks([]);
+      setIsLoading(true);
+      fetchTracksFor(albumUri, 'album').finally(() => setIsLoading(false));
+    } else {
+      fetchTracksFor(albumUri, 'album');
+    }
   }, [fetchTracksFor, panelView]);
 
   const showPlaylist = useCallback(() => {
@@ -209,8 +216,13 @@ export function useTracklistPanel(
     setOverrideType(null);
     if (contextUri && contextType === 'playlist') {
       // Clear stale tracks only when not cached to prevent old panel tracks flashing
-      if (!cacheRef.current[contextUri]) setTracks([]);
-      fetchTracksFor(contextUri, contextType);
+      if (!cacheRef.current[contextUri]) {
+        setTracks([]);
+        setIsLoading(true);
+        fetchTracksFor(contextUri, contextType).finally(() => setIsLoading(false));
+      } else {
+        fetchTracksFor(contextUri, contextType);
+      }
       return;
     }
 
@@ -220,8 +232,13 @@ export function useTracklistPanel(
       panelViewRef.current = 'album';
       setOverrideUri(fallbackAlbum.uri);
       setOverrideType('album');
-      if (!cacheRef.current[fallbackAlbum.uri]) setTracks([]);
-      fetchTracksFor(fallbackAlbum.uri, 'album');
+      if (!cacheRef.current[fallbackAlbum.uri]) {
+        setTracks([]);
+        setIsLoading(true);
+        fetchTracksFor(fallbackAlbum.uri, 'album').finally(() => setIsLoading(false));
+      } else {
+        fetchTracksFor(fallbackAlbum.uri, 'album');
+      }
       return;
     }
 
@@ -236,7 +253,8 @@ export function useTracklistPanel(
     panelViewRef.current = 'queue';
     // Queue is never cached — always clear before fetching fresh
     setTracks([]);
-    fetchQueueTracks();
+    setIsLoading(true);
+    fetchQueueTracks().finally(() => setIsLoading(false));
   }, [panelView, fetchQueueTracks]);
 
   const goBack = useCallback(() => {
@@ -247,8 +265,13 @@ export function useTracklistPanel(
         panelViewRef.current = 'album';
         setOverrideUri(albumUri);
         setOverrideType('album');
-        if (!cacheRef.current[albumUri]) setTracks([]);
-        fetchTracksFor(albumUri, 'album');
+        if (!cacheRef.current[albumUri]) {
+          setTracks([]);
+          setIsLoading(true);
+          fetchTracksFor(albumUri, 'album').finally(() => setIsLoading(false));
+        } else {
+          fetchTracksFor(albumUri, 'album');
+        }
         return;
       }
     }
@@ -265,19 +288,25 @@ export function useTracklistPanel(
           clearTimeout(queueRefreshTimerRef.current);
           queueRefreshTimerRef.current = null;
         }
-        const activeContextUri =
-          overrideUri ?? (isSupportedContext ? contextUri : fallbackAlbum?.uri ?? null);
 
-        if (activeContextUri) {
-          await playTrackInContext(activeContextUri, trackUri);
+        // Queue tracks come from the current Spotify context. Use playTrackInContext
+        // with the real contextUri (not the panel-navigation override) so Spotify
+        // keeps the playlist/album context intact — otherwise playing via URI alone
+        // creates a single-track ad-hoc context and the queue shows that one song
+        // repeated. Fall back to playTrackByUri only when there is no known context.
+        const playContext = isSupportedContext ? contextUri : (fallbackAlbum?.uri ?? null);
+        if (playContext) {
+          await playTrackInContext(playContext, trackUri);
         } else {
           await playTrackByUri(trackUri);
         }
-        // Refresh immediately, then once more after a short delay to catch API lag.
-        await fetchQueueTracks();
+
+        // Don't refresh immediately — Spotify hasn't updated its queue state yet.
+        // A single delayed refresh is enough; the current track row will stay
+        // visible in the panel until the fresh data arrives.
         queueRefreshTimerRef.current = setTimeout(() => {
           fetchQueueTracks();
-        }, 500);
+        }, 800);
       } catch (err) {
         console.error('Failed to play selected queue track:', err);
       }
@@ -311,6 +340,7 @@ export function useTracklistPanel(
 
   return {
     isOpen,
+    isLoading,
     tracks,
     selectedTrackUri,
     panelView,

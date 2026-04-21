@@ -27,6 +27,7 @@ interface RecordPlayerProps {
   onDiscPointerDown?: (e: React.PointerEvent<HTMLDivElement>) => void;
   // Tracklist panel props
   isTracklistOpen?: boolean;
+  isTracklistLoading?: boolean;
   tracklistTracks?: ContextTrack[];
   currentTrackUri?: string | null;
   panelView?: PanelView;
@@ -72,6 +73,7 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
   ledSkip = 'none',
   onDiscPointerDown,
   isTracklistOpen = false,
+  isTracklistLoading = false,
   tracklistTracks = [],
   currentTrackUri = null,
   panelView = 'playlist',
@@ -175,6 +177,7 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
       {/* Tracklist panel — expands below transition area */}
       <TracklistPanel
         isOpen={isTracklistOpen}
+        isLoading={isTracklistLoading}
         tracks={tracklistTracks}
         currentTrackUri={currentTrackUri}
         accentColor={tracklistAccentColor ?? baseColor}
