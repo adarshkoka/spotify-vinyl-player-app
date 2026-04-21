@@ -560,14 +560,26 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  min-width: 0;
+  flex: 1;
+  justify-content: flex-start;
+}
+
+.tracklist-panel-title {
+  flex: 0 0 auto;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  color: rgba(255, 255, 255, 0.3);
+  text-align: center;
+  white-space: nowrap;
 }
 
 .tracklist-nav-right {
   display: flex;
   align-items: center;
   gap: 4px;
-  margin-left: auto;
+  flex: 1;
+  justify-content: flex-end;
 }
 
 /* Album / Playlist toggle button */

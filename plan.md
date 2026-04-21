@@ -106,3 +106,30 @@ State-Driven Transitions: Transition triggers must be tied to Spotify’s track_
 - Full rotation right skips to next track; full rotation left restarts current or goes to previous based on progress
 - Tunable config variables: seconds-per-degree, full-rotation threshold, coast duration, coast friction
 - Seek calls throttled to avoid Spotify API rate limits
+
+---------------------------------------------------------------------------------------
+
+## Ongoing Issues (Current Sprint)
+
+- Pausing by tapping the Disc does not work on mobile. Also, rotating disc using touch on mobile does not work. Cannot spin the disc. On desktop with mouse this already works fine. This needs to be working on both mobile and desktop.
+
+- Playing songs from the Queue does not work. Also, within the queue panel if I add a song to queue, the queue order does not change unless I leave the queue panel and then go back to the queue panel.
+
+- On mobile browsers such as Chrome, a black rectangle briefly shows when returning to app after clicking a hyperlink.
+
+- If a song is not being played from a playlist (song is played from the Liked Songs list or from an artists page for example) the Queue panel is not showing.
+
+- When I switch to a different panel, the tracks from the playlist view briefly display before changing to the correct tracks for that panel. They should not show like this, if the correct tracks for the panel are still loading then just let it be the empty black panel screen (the panel size should not change even though it is empty here) until the correct tracks load.
+
+# Additional Minor Improvements
+
+- Combine the settings into one Gear Symbol button with low opacity, that is positioned at the bottom right. This settings button combines the settings into one, and contains the Base Color, Tonearm color, Logout button, and the enable/disable LEDs radio button (described below)
+
+- Enable/disable LEDs radio button, add this radio button to allow the user to disable the LEDs at the bottom of the record player. 
+
+- During the disk animation, if the user double clicks anywhere on the background. or if the user opens the jacket, the animation should "skip" and the disc should go straight to the record player.
+
+- Add a setting under the Gear symbol for "Manual Vinyl Player". This changes the disk animation to only move the Disk halfway out of the jacket (it will stick out of the jacket with a semi-circle shape). The user needs to manually drag the disc to the record player, and manually move the tonearm onto the disc (the tonearm should originally be positioned off of the disc area in the record player) in order to start the song. Once the user places the disc onto the record player and moves the tonearm to the disc, the disc will start spinning automatically and the song will begin to play.
+
+- Alter Wood, Gold, and silver to be slightly different textures. I don't like how all three of these look very similar since they are all Ring-like textures. I want the silver and gold to differ slightly but still represent the luxurious sheen of the metals. The wood should be a completely different texture that represents how a wooden record player would look.
+

@@ -61,6 +61,7 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
 }) => {
   const showTrackNumbers = panelView !== 'playlist';
   const showAlbumBtn = isPlaylist && (!albumTrackCount || albumTrackCount > 1);
+  const panelTitle = panelView === 'playlist' ? 'Playlist' : panelView === 'album' ? 'Album' : 'Queue';
 
   return (
     <div className={`tracklist-panel ${isOpen ? 'tracklist-panel-open' : ''}`}>
@@ -76,6 +77,9 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
               <button className="tracklist-toggle-btn" onClick={onGoBack}>← Playlist</button>
             )}
           </div>
+
+          {/* Centered panel title */}
+          <span className="tracklist-panel-title">{panelTitle}</span>
 
           {/* Right: next panel + close */}
           <div className="tracklist-nav-right">

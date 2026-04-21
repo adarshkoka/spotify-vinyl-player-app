@@ -4,6 +4,7 @@ import {
   getPlaylistTracks,
   getQueue,
   playTrackInContext,
+  playTrackByUri,
   addToQueue as apiAddToQueue,
   type ContextTrack,
 } from '../services/spotifyService';
@@ -39,6 +40,12 @@ export function useTracklistPanel(
   const [overrideUri, setOverrideUri] = useState<string | null>(null);
   const [overrideType, setOverrideType] = useState<string | null>(null);
   const prevViewRef = useRef<PanelView>('playlist');
+  const panelViewRef = useRef<PanelView>('playlist');
+  const queueRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    panelViewRef.current = panelView;
+  }, [panelView]);
 
   // Cache tracks per contextUri (not used for queue — always fresh)
   const cacheRef = useRef<Record<string, ContextTrack[]>>({});
@@ -102,11 +109,16 @@ export function useTracklistPanel(
   const fetchQueueTracks = useCallback(async (): Promise<ContextTrack[]> => {
     try {
       const result = await getQueue();
-      setTracks(result);
+      // Queue refresh should only mutate panel tracks while queue view is active.
+      if (panelViewRef.current === 'queue') {
+        setTracks(result);
+      }
       return result;
     } catch (err) {
       console.error('Failed to fetch queue:', err);
-      setTracks([]);
+      if (panelViewRef.current === 'queue') {
+        setTracks([]);
+      }
       return [];
     }
   }, []);
@@ -145,12 +157,18 @@ export function useTracklistPanel(
   // Step 4: fetch-before-open — panel opens only after tracks arrive
   const toggleOpen = useCallback(async () => {
     if (isOpen) {
+      if (queueRefreshTimerRef.current) {
+        clearTimeout(queueRefreshTimerRef.current);
+        queueRefreshTimerRef.current = null;
+      }
       setIsOpen(false);
       setPanelView(defaultView);
+      panelViewRef.current = defaultView;
       setOverrideUri(null);
       setOverrideType(null);
     } else {
       setPanelView(defaultView);
+      panelViewRef.current = defaultView;
       setOverrideUri(null);
       setOverrideType(null);
       const result = await fetchTracks();
@@ -161,8 +179,13 @@ export function useTracklistPanel(
   }, [isOpen, fetchTracks, defaultView]);
 
   const close = useCallback(() => {
+    if (queueRefreshTimerRef.current) {
+      clearTimeout(queueRefreshTimerRef.current);
+      queueRefreshTimerRef.current = null;
+    }
     setIsOpen(false);
     setPanelView(defaultView);
+    panelViewRef.current = defaultView;
     setOverrideUri(null);
     setOverrideType(null);
   }, [defaultView]);
@@ -170,35 +193,94 @@ export function useTracklistPanel(
   const showAlbum = useCallback((_albumId: string, albumUri: string) => {
     prevViewRef.current = panelView;
     setPanelView('album');
+    panelViewRef.current = 'album';
     setOverrideUri(albumUri);
     setOverrideType('album');
+    // Clear stale tracks only when not cached to prevent old panel tracks flashing
+    if (!cacheRef.current[albumUri]) setTracks([]);
     fetchTracksFor(albumUri, 'album');
   }, [fetchTracksFor, panelView]);
 
   const showPlaylist = useCallback(() => {
     prevViewRef.current = panelView;
     setPanelView('playlist');
+    panelViewRef.current = 'playlist';
     setOverrideUri(null);
     setOverrideType(null);
-    if (contextUri && contextType) {
+    if (contextUri && contextType === 'playlist') {
+      // Clear stale tracks only when not cached to prevent old panel tracks flashing
+      if (!cacheRef.current[contextUri]) setTracks([]);
       fetchTracksFor(contextUri, contextType);
+      return;
     }
-  }, [contextUri, contextType, fetchTracksFor, panelView]);
+
+    // If playlist context is unavailable, gracefully fall back to album tracks.
+    if (fallbackAlbum?.uri) {
+      setPanelView('album');
+      panelViewRef.current = 'album';
+      setOverrideUri(fallbackAlbum.uri);
+      setOverrideType('album');
+      if (!cacheRef.current[fallbackAlbum.uri]) setTracks([]);
+      fetchTracksFor(fallbackAlbum.uri, 'album');
+      return;
+    }
+
+    // No valid source available: clear stale rows and close.
+    setTracks([]);
+    setIsOpen(false);
+  }, [contextUri, contextType, fallbackAlbum?.uri, fetchTracksFor, panelView]);
 
   const showQueue = useCallback(() => {
     prevViewRef.current = panelView;
     setPanelView('queue');
+    panelViewRef.current = 'queue';
+    // Queue is never cached — always clear before fetching fresh
+    setTracks([]);
     fetchQueueTracks();
   }, [panelView, fetchQueueTracks]);
 
   const goBack = useCallback(() => {
+    if (prevViewRef.current === 'album') {
+      const albumUri = (overrideType === 'album' ? overrideUri : null) ?? fallbackAlbum?.uri ?? null;
+      if (albumUri) {
+        setPanelView('album');
+        panelViewRef.current = 'album';
+        setOverrideUri(albumUri);
+        setOverrideType('album');
+        if (!cacheRef.current[albumUri]) setTracks([]);
+        fetchTracksFor(albumUri, 'album');
+        return;
+      }
+    }
     showPlaylist();
-  }, [showPlaylist]);
+  }, [overrideType, overrideUri, fallbackAlbum?.uri, fetchTracksFor, showPlaylist]);
 
   const selectTrack = useCallback(async (trackUri: string) => {
     if (panelView === 'queue') {
-      // Queue tracks don't have a single context — just highlight
+      // Queue tracks may come from mixed contexts. Prefer context playback when possible,
+      // else fall back to direct URI playback.
       setSelectedTrackUri(trackUri);
+      try {
+        if (queueRefreshTimerRef.current) {
+          clearTimeout(queueRefreshTimerRef.current);
+          queueRefreshTimerRef.current = null;
+        }
+        const activeContextUri =
+          overrideUri ?? (isSupportedContext ? contextUri : fallbackAlbum?.uri ?? null);
+
+        if (activeContextUri) {
+          await playTrackInContext(activeContextUri, trackUri);
+        } else {
+          await playTrackByUri(trackUri);
+        }
+        // Refresh immediately, then once more after a short delay to catch API lag.
+        await fetchQueueTracks();
+        queueRefreshTimerRef.current = setTimeout(() => {
+          fetchQueueTracks();
+        }, 500);
+      } catch (err) {
+        console.error('Failed to play selected queue track:', err);
+      }
       return;
     }
     const activeContextUri = overrideUri ?? (isSupportedContext ? contextUri : fallbackAlbum?.uri ?? null);
@@ -209,7 +291,7 @@ export function useTracklistPanel(
     } catch (err) {
       console.error('Failed to play track in context:', err);
     }
-  }, [contextUri, overrideUri, isSupportedContext, fallbackAlbum, panelView]);
+  }, [contextUri, overrideUri, isSupportedContext, fallbackAlbum, panelView, fetchQueueTracks]);
 
   const addToQueue = useCallback(async (trackUri: string) => {
     await apiAddToQueue(trackUri);
@@ -218,6 +300,14 @@ export function useTracklistPanel(
       await fetchQueueTracks();
     }
   }, [panelView, fetchQueueTracks]);
+
+  useEffect(() => {
+    return () => {
+      if (queueRefreshTimerRef.current) {
+        clearTimeout(queueRefreshTimerRef.current);
+      }
+    };
+  }, []);
 
   return {
     isOpen,

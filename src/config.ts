@@ -51,8 +51,9 @@ export const SCRUB_MS_PER_DEGREE = 80;
 /**
  * Degrees of rotation that triggers a full-rotation skip action.
  * >= this value right = skip next, <= negative = skip previous / restart.
+ * 330 ≈ 1 rotation, 690 ≈ 2 rotations (slightly less than exact to feel responsive).
  */
-export const SCRUB_FULL_ROTATION_THRESHOLD = 330;
+export const SCRUB_FULL_ROTATION_THRESHOLD = 690;
 
 /** Minimum interval (ms) between seek API calls to avoid rate limits. */
 export const SCRUB_SEEK_THROTTLE_MS = 300;

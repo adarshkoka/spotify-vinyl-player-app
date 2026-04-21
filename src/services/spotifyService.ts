@@ -278,6 +278,13 @@ export async function playTrackInContext(contextUri: string, trackUri: string): 
   });
 }
 
+export async function playTrackByUri(trackUri: string): Promise<void> {
+  await spotifyApiCall<void>('me/player/play', {
+    method: 'PUT',
+    body: { uris: [trackUri] },
+  });
+}
+
 // --- Queue ---
 
 interface SpotifyQueueResponse {
