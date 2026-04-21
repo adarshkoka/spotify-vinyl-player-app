@@ -2,6 +2,16 @@ import { useState, useEffect } from 'react';
 import LoginPage from './pages/LoginPage';
 import MainAppPage from './pages/MainAppPage';
 
+const SCOPE_VERSION = 'v2';
+
+// If scopes have changed since the user last authenticated, clear stored tokens
+// so they are redirected through the OAuth flow with the updated scope list.
+if (localStorage.getItem('spotify_scope_version') !== SCOPE_VERSION) {
+  ['spotify_access_token', 'spotify_refresh_token', 'spotify_token_expires_at',
+   'spotify_code_verifier', 'spotify_auth_state'].forEach(k => localStorage.removeItem(k));
+  localStorage.setItem('spotify_scope_version', SCOPE_VERSION);
+}
+
 const isAuthenticated = () => {
   const token = localStorage.getItem('spotify_access_token');
   const refreshToken = localStorage.getItem('spotify_refresh_token');

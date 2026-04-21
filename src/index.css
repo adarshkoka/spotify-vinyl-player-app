@@ -585,7 +585,7 @@
 
 .tracklist-panel {
   width: 100%;
-  max-width: 280px;
+  max-width: 360px;
   margin: 0 auto;
   overflow: hidden;
   pointer-events: none;
@@ -818,7 +818,7 @@
   flex-shrink: 0;
   border: none;
   background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.256);
   font-size: 10px;
   width: 16px;
   height: 16px;
@@ -843,6 +843,54 @@
   pointer-events: none;
   font-size: 9px;
 }
+
+/* Heart button */
+.heart-btn {
+  position: relative;
+  flex-shrink: 0;
+  border: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.256);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color 0.15s, background 0.15s;
+  overflow: visible;
+}
+.heart-btn:hover {
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.heart-btn-saved {
+  color: #e8274b;
+  background: rgba(232, 39, 75, 0.12);
+  pointer-events: none;
+  cursor: default;
+}
+.heart-btn-saved:hover {
+  color: #e8274b;
+  background: rgba(232, 39, 75, 0.12);
+}
+
+@keyframes heart-float {
+  0%   { transform: translateY(0) scale(1); opacity: 0.9; }
+  100% { transform: translateY(-16px) scale(0.5); opacity: 0; }
+}
+
+.heart-float {
+  position: absolute;
+  pointer-events: none;
+  color: #e8274b;
+  animation: heart-float 0.65s ease-out forwards;
+}
+.heart-float:nth-child(1) { left: -2px; top: -2px; animation-delay: 0ms; }
+.heart-float:nth-child(2) { left: 6px;  top: -2px; animation-delay: 80ms; }
 
 /* ============================
    Transition Area

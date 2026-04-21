@@ -341,3 +341,19 @@ export async function seekToPosition(positionMs: number): Promise<void> {
     { method: 'PUT' }
   );
 }
+
+// --- Library (Liked Songs) ---
+
+export async function checkSavedTracks(trackIds: string[]): Promise<boolean[]> {
+  if (trackIds.length === 0) return [];
+  const ids = trackIds.slice(0, 50).join(',');
+  return spotifyApiCall<boolean[]>(`me/tracks/contains?ids=${encodeURIComponent(ids)}`);
+}
+
+export async function saveTracksToLibrary(trackIds: string[]): Promise<void> {
+  if (trackIds.length === 0) return;
+  await spotifyApiCall<void>('me/tracks', {
+    method: 'PUT',
+    body: { ids: trackIds.slice(0, 50) },
+  });
+}

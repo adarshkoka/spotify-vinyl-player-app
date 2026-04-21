@@ -20,7 +20,7 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
   const { stage, jacketTrack, discTrack, skipToPlatter } = useTrackTransition(track, isPlaying);
   const [gradientColors, setGradientColors] = useState<ExtractedColors>(DEFAULT_COLORS);
   const { baseBackground, baseColor, baseMaterial, tonearmColor, tonearmMaterial, setBaseColor, setTonearmColor, applyMaterialPreset } = usePlayerColors();
-  const { isOpen: isTracklistOpen, isLoading: isTracklistLoading, tracks: tracklistTracks, selectedTrackUri, panelView, isSupportedContext, toggleOpen: toggleTracklist, close: closeTracklist, selectTrack, showAlbum, showPlaylist, showQueue, goBack, addToQueue } = useTracklistPanel(contextUri, contextType, track?.album ?? null, track?.uri);
+  const { isOpen: isTracklistOpen, isLoading: isTracklistLoading, tracks: tracklistTracks, selectedTrackUri, panelView, isSupportedContext, savedTrackUris, toggleOpen: toggleTracklist, close: closeTracklist, selectTrack, showAlbum, showPlaylist, showQueue, goBack, addToQueue, saveTrack } = useTracklistPanel(contextUri, contextType, track?.album ?? null, track?.uri);
 
   const handleToggleTracklist = () => {
     skipToPlatter();
@@ -105,6 +105,8 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
             onShowQueue={showQueue}
             onGoBack={goBack}
             onAddToQueue={addToQueue}
+            savedTrackUris={savedTrackUris}
+            onSaveTrack={saveTrack}
             tracklistAvailable={tracklistAvailable}
             tracklistAccentColor={tracklistAccentColor}
           />

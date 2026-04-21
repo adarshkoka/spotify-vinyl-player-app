@@ -43,6 +43,8 @@ interface RecordPlayerProps {
   onAddToQueue?: (trackUri: string) => Promise<void>;
   tracklistAccentColor?: string;
   tracklistAvailable?: boolean;
+  savedTrackUris?: Set<string>;
+  onSaveTrack?: (trackUri: string) => Promise<void>;
 }
 
 function getAlbumArtUrl(track: SpotifyTrack | null): string | null {
@@ -89,6 +91,8 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
   onAddToQueue,
   tracklistAccentColor,
   tracklistAvailable = true,
+  savedTrackUris,
+  onSaveTrack,
 }) => {
   const discArt = getAlbumArtUrl(discTrack);
   const jacketArt = getAlbumArtUrl(jacketTrack);
@@ -191,6 +195,8 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
         onShowQueue={onShowQueue}
         onGoBack={onGoBack}
         onAddToQueue={onAddToQueue}
+        savedTrackUris={savedTrackUris}
+        onSaveTrack={onSaveTrack}
       />
     </div>
   );

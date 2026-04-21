@@ -6,6 +6,8 @@ import {
   playTrackInContext,
   playTrackByUri,
   addToQueue as apiAddToQueue,
+  checkSavedTracks,
+  saveTracksToLibrary,
   type ContextTrack,
 } from '../services/spotifyService';
 
@@ -18,6 +20,7 @@ interface UseTracklistPanelReturn {
   selectedTrackUri: string | null;
   panelView: PanelView;
   isSupportedContext: boolean;
+  savedTrackUris: Set<string>;
   toggleOpen: () => void;
   close: () => void;
   selectTrack: (trackUri: string) => Promise<void>;
@@ -26,6 +29,7 @@ interface UseTracklistPanelReturn {
   showQueue: () => void;
   goBack: () => void;
   addToQueue: (trackUri: string) => Promise<void>;
+  saveTrack: (trackUri: string) => Promise<void>;
 }
 
 export function useTracklistPanel(
@@ -39,6 +43,7 @@ export function useTracklistPanel(
   const [tracks, setTracks] = useState<ContextTrack[]>([]);
   const [selectedTrackUri, setSelectedTrackUri] = useState<string | null>(null);
   const [panelView, setPanelView] = useState<PanelView>('playlist');
+  const [savedTrackUris, setSavedTrackUris] = useState<Set<string>>(new Set());
   const [overrideUri, setOverrideUri] = useState<string | null>(null);
   const [overrideType, setOverrideType] = useState<string | null>(null);
   const prevViewRef = useRef<PanelView>('playlist');
@@ -52,6 +57,21 @@ export function useTracklistPanel(
   // Cache tracks per contextUri (not used for queue — always fresh)
   const cacheRef = useRef<Record<string, ContextTrack[]>>({});
 
+  const checkAndMergeSaved = useCallback(async (trackList: ContextTrack[]) => {
+    if (trackList.length === 0) return;
+    const ids = trackList.map(t => t.uri.split(':').pop()!).filter(Boolean);
+    try {
+      const saved = await checkSavedTracks(ids);
+      setSavedTrackUris(prev => {
+        const next = new Set(prev);
+        trackList.forEach((t, i) => { if (saved[i]) next.add(t.uri); });
+        return next;
+      });
+    } catch (err) {
+      console.error('Failed to check saved tracks:', err);
+    }
+  }, []);
+
   // Whether the current context is fetchable (album or playlist)
   const isSupportedContext = contextType === 'album' || contextType === 'playlist';
 
@@ -62,6 +82,7 @@ export function useTracklistPanel(
     if (cacheRef.current[uri]) {
       const cached = cacheRef.current[uri];
       setTracks(cached);
+      checkAndMergeSaved(cached);
       return cached;
     }
 
@@ -93,6 +114,7 @@ export function useTracklistPanel(
           setOverrideUri(albumUri);
           setOverrideType('album');
           setTracks(albumTracks);
+          checkAndMergeSaved(albumTracks);
           return albumTracks;
         }
         return [];
@@ -100,13 +122,14 @@ export function useTracklistPanel(
 
       cacheRef.current[uri] = result;
       setTracks(result);
+      checkAndMergeSaved(result);
       return result;
     } catch (err) {
       console.error('Failed to fetch context tracks:', err);
       setTracks([]);
       return [];
     }
-  }, [fallbackAlbum]);
+  }, [fallbackAlbum, checkAndMergeSaved]);
 
   const fetchQueueTracks = useCallback(async (): Promise<ContextTrack[]> => {
     try {
@@ -114,6 +137,7 @@ export function useTracklistPanel(
       // Queue refresh should only mutate panel tracks while queue view is active.
       if (panelViewRef.current === 'queue') {
         setTracks(result);
+        checkAndMergeSaved(result);
       }
       return result;
     } catch (err) {
@@ -123,7 +147,7 @@ export function useTracklistPanel(
       }
       return [];
     }
-  }, []);
+  }, [checkAndMergeSaved]);
 
   // Clear stale selection when the actual playing track changes (e.g. external skip)
   useEffect(() => {
@@ -330,6 +354,17 @@ export function useTracklistPanel(
     }
   }, [panelView, fetchQueueTracks]);
 
+  const saveTrack = useCallback(async (trackUri: string) => {
+    const id = trackUri.split(':').pop();
+    if (!id) return;
+    try {
+      await saveTracksToLibrary([id]);
+      setSavedTrackUris(prev => new Set([...prev, trackUri]));
+    } catch (err) {
+      console.error('Failed to save track to library:', err);
+    }
+  }, []);
+
   useEffect(() => {
     return () => {
       if (queueRefreshTimerRef.current) {
@@ -345,6 +380,7 @@ export function useTracklistPanel(
     selectedTrackUri,
     panelView,
     isSupportedContext,
+    savedTrackUris,
     toggleOpen,
     close,
     selectTrack,
@@ -353,5 +389,6 @@ export function useTracklistPanel(
     showQueue,
     goBack,
     addToQueue,
+    saveTrack,
   };
 }

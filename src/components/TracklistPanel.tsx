@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { ContextTrack } from '../services/spotifyService';
 import type { PanelView } from '../hooks/useTracklistPanel';
 
@@ -24,6 +24,8 @@ interface TracklistPanelProps {
   onShowQueue?: () => void;
   onGoBack?: () => void;
   onAddToQueue?: (trackUri: string) => Promise<void>;
+  savedTrackUris?: Set<string>;
+  onSaveTrack?: (trackUri: string) => Promise<void>;
 }
 
 const AddToQueueButton: React.FC<{
@@ -40,7 +42,57 @@ const AddToQueueButton: React.FC<{
       className="add-to-queue-btn"
       onClick={(e) => { e.stopPropagation(); setAdded(true); onAdd(trackUri); }}
       title="Add to queue"
-    >+</button>
+    >
+      <svg width="8" height="6.4" viewBox="0 0 10 8" fill="currentColor">
+        <rect x="0" y="0" width="10" height="1.5" rx="0.75"/>
+        <rect x="0" y="3.25" width="10" height="1.5" rx="0.75"/>
+        <rect x="0" y="6.5" width="10" height="1.5" rx="0.75"/>
+      </svg>
+    </button>
+  );
+};
+
+const HeartSvg: React.FC<{ filled: boolean }> = ({ filled }) => (
+  <svg width="8" height="8" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+  </svg>
+);
+
+const HeartButton: React.FC<{
+  trackUri: string;
+  isSaved: boolean;
+  onSave: (uri: string) => Promise<void>;
+}> = ({ trackUri, isSaved, onSave }) => {
+  const [saved, setSaved] = useState(isSaved);
+  const [animating, setAnimating] = useState(false);
+
+  useEffect(() => {
+    if (isSaved) setSaved(true);
+  }, [isSaved]);
+
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (saved) return;
+    setSaved(true);
+    setAnimating(true);
+    onSave(trackUri);
+    setTimeout(() => setAnimating(false), 700);
+  }, [saved, onSave, trackUri]);
+
+  return (
+    <button
+      className={`heart-btn ${saved ? 'heart-btn-saved' : ''}`}
+      onClick={handleClick}
+      title="Save to library"
+    >
+      {animating && (
+        <>
+          <span className="heart-float"><HeartSvg filled /></span>
+          <span className="heart-float"><HeartSvg filled /></span>
+        </>
+      )}
+      <HeartSvg filled={saved} />
+    </button>
   );
 };
 
@@ -60,6 +112,8 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
   onShowQueue,
   onGoBack,
   onAddToQueue,
+  savedTrackUris,
+  onSaveTrack,
 }) => {
   const showTrackNumbers = panelView !== 'playlist';
   const showAlbumBtn = isPlaylist && (!albumTrackCount || albumTrackCount > 1);
@@ -146,6 +200,13 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
                 <AddToQueueButton
                   trackUri={t.uri}
                   onAdd={onAddToQueue}
+                />
+              )}
+              {onSaveTrack && (
+                <HeartButton
+                  trackUri={t.uri}
+                  isSaved={savedTrackUris?.has(t.uri) ?? false}
+                  onSave={onSaveTrack}
                 />
               )}
               <span className="tracklist-dur">{formatDuration(t.duration_ms)}</span>
