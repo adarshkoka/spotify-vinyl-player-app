@@ -30,8 +30,8 @@ function adjustHex(hex: string, amount: number): string {
    dark = counterweight/pivot-inner/cartridge, edge = highlight arc. */
 const MATERIAL_PALETTE: Record<string, { light: string; dark: string; edge: string }> = {
   wood:     { light: '#7a2e1a', dark: '#40120c', edge: 'rgba(255,210,160,0.18)' },
-  aluminum: { light: '#b2bac2', dark: '#3f474e', edge: 'rgba(220,230,240,0.22)' },
-  silver:   { light: '#e0e4e8', dark: '#7d848c', edge: 'rgba(255,255,255,0.22)' },
+  aluminum: { light: '#a8b0b8', dark: '#353c43', edge: 'rgba(210,222,232,0.22)' },
+  silver:   { light: '#eef2f6', dark: '#6b737c', edge: 'rgba(255,255,255,0.32)' },
   gold:     { light: '#ffd76e', dark: '#a87010', edge: 'rgba(255,245,200,0.32)' },
 };
 
@@ -50,10 +50,11 @@ const Tonearm: React.FC<TonearmProps> = ({
 
   /* Which sheen gradient to use on the arm body tube */
   const sheenId =
-    tonearmMaterial === 'wood'     ? 'wood-sheen'
-    : tonearmMaterial === 'gold'   ? 'gold-sheen'
-    : tonearmMaterial               ? 'metal-sheen'
-    :                                 'plastic-sheen';
+    tonearmMaterial === 'wood'       ? 'wood-sheen'
+    : tonearmMaterial === 'gold'     ? 'gold-sheen'
+    : tonearmMaterial === 'silver'   ? 'silver-sheen'
+    : tonearmMaterial === 'aluminum' ? 'aluminum-sheen'
+    :                                  'plastic-sheen';
 
   return (
     <div className={`tonearm-container ${posClass} ${isScrubbing ? 'tonearm-wobble' : ''}`}>
@@ -78,11 +79,20 @@ const Tonearm: React.FC<TonearmProps> = ({
             <stop offset="38%"  stopColor="#e07a2e" stopOpacity="0.04" />
             <stop offset="100%" stopColor="#000"    stopOpacity="0.07" />
           </linearGradient>
-          {/* Brushed aluminum — cool, crisp highlight */}
-          <linearGradient id="metal-sheen" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%"   stopColor="#f8fcff" stopOpacity="0.18" />
-            <stop offset="32%"  stopColor="#e0e4e8" stopOpacity="0.04" />
-            <stop offset="68%"  stopColor="#b2bac2" stopOpacity="0.10" />
+          {/* Brushed aluminum — cool, subdued highlight with mid brushed band */}
+          <linearGradient id="aluminum-sheen" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%"   stopColor="#f0f4f8" stopOpacity="0.14" />
+            <stop offset="28%"  stopColor="#cdd3d9" stopOpacity="0.03" />
+            <stop offset="60%"  stopColor="#b8c0c8" stopOpacity="0.12" />
+            <stop offset="72%"  stopColor="#b8c0c8" stopOpacity="0.12" />
+            <stop offset="100%" stopColor="#000"    stopOpacity="0.08" />
+          </linearGradient>
+          {/* Polished silver — mirror-polish with bright peak and secondary reflection */}
+          <linearGradient id="silver-sheen" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%"   stopColor="#ffffff" stopOpacity="0.30" />
+            <stop offset="38%"  stopColor="#ffffff" stopOpacity="0.02" />
+            <stop offset="58%"  stopColor="#ffffff" stopOpacity="0.02" />
+            <stop offset="72%"  stopColor="#e8edf2" stopOpacity="0.16" />
             <stop offset="100%" stopColor="#000"    stopOpacity="0.06" />
           </linearGradient>
           {/* Gold — broad, luminous highlight */}
@@ -92,12 +102,21 @@ const Tonearm: React.FC<TonearmProps> = ({
             <stop offset="60%"  stopColor="#ffd76e" stopOpacity="0.22" />
             <stop offset="100%" stopColor="#a87010" stopOpacity="0.10" />
           </linearGradient>
+          {/* Top-edge specular stripe — thin bright catch along the top of the arm tube */}
+          <linearGradient id="top-edge-sheen" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="#ffffff" stopOpacity="0.55" />
+            <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+          </linearGradient>
         </defs>
 
         {/* === Arm body — thin tube from pivot down to headshell === */}
         <rect x="12" y="24" width="4" height="138" rx="2" fill={fill} />
         {/* Cylinder sheen overlay on body */}
         <rect x="12" y="24" width="4" height="138" rx="2" fill={`url(#${sheenId})`} />
+        {/* Top-edge specular stripe — wood + metals only (skip plastic for softer look) */}
+        {tonearmMaterial && (
+          <rect x="12.3" y="24" width="1" height="138" rx="0.5" fill="url(#top-edge-sheen)" />
+        )}
 
         {/* Counterweight at top */}
         <rect x="10" y="14" width="8" height="13" rx="3" fill={fillDark} />

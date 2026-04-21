@@ -27,8 +27,8 @@ export const MATERIAL_PRESETS: MaterialPresetDef[] = [
   {
     id: 'silver',
     label: 'Silver',
-    color: '#7d848c',
-    gradient: 'linear-gradient(145deg, #e0e4e8 0%, #9ba3ab 22%, #7d848c 56%, #555c64 100%)',
+    color: '#818892',
+    gradient: 'linear-gradient(145deg, #e8edf2 0%, #a6aeb6 22%, #818892 56%, #565d66 100%)',
   },
   {
     id: 'gold',

@@ -178,6 +178,14 @@
 
 .base-texture-wood {
   background:
+    /* Fine vertical grain lines — drifts 2deg off-axis for natural feel */
+    repeating-linear-gradient(
+      88deg,
+      transparent 0px,
+      rgba(40, 14, 6, 0.06) 1px,
+      transparent 2px,
+      transparent 3px
+    ),
     /* Dark vein 1 — wide flowing streak */
     linear-gradient(
       174deg,
@@ -222,7 +230,7 @@
   /* Very subtle lacquer gloss — no bright spot, just gentle overall sheen */
   background: linear-gradient(
     155deg,
-    rgba(220, 160, 120, 0.08) 0%,
+    rgba(220, 160, 120, 0.11) 0%,
     transparent 35%,
     rgba(14, 4, 1, 0.10) 100%
   );
@@ -231,25 +239,32 @@
 
 .base-texture-aluminum {
   background:
-    /* Brushed horizontal lines — fine parallel bands */
+    /* Brushed horizontal lines — wider parallel bands for stronger read */
     repeating-linear-gradient(
       0deg,
       rgba(255, 255, 255, 0.0) 0px,
-      rgba(255, 255, 255, 0.08) 1px,
-      rgba(180, 195, 210, 0.03) 2px,
-      rgba(255, 255, 255, 0.0) 3px
+      rgba(255, 255, 255, 0.11) 1px,
+      rgba(180, 195, 210, 0.04) 2px,
+      rgba(255, 255, 255, 0.0) 4px
     ),
     /* Second pass slightly offset for realism */
     repeating-linear-gradient(
       2deg,
       rgba(200, 212, 224, 0.0) 0px,
-      rgba(200, 212, 224, 0.05) 1.5px,
-      rgba(160, 175, 190, 0.02) 2.5px,
-      rgba(200, 212, 224, 0.0) 4px
+      rgba(200, 212, 224, 0.06) 1.5px,
+      rgba(160, 175, 190, 0.03) 2.5px,
+      rgba(200, 212, 224, 0.0) 5px
     ),
-    /* Subtle directional highlight */
-    linear-gradient(170deg, rgba(228, 235, 241, 0.12) 0%, transparent 30%, rgba(80, 90, 100, 0.08) 60%, transparent 90%);
-  border-top: 1px solid rgba(200, 210, 220, 0.22);
+    /* Anisotropic specular band — diagonal light catch */
+    linear-gradient(
+      170deg,
+      transparent 26%,
+      rgba(235, 242, 248, 0.20) 38%,
+      transparent 52%
+    ),
+    /* Subtle directional highlight — cooler blue-neutral tint */
+    linear-gradient(170deg, rgba(220, 232, 245, 0.14) 0%, transparent 30%, rgba(80, 90, 100, 0.10) 60%, transparent 90%);
+  border-top: 1px solid rgba(200, 210, 220, 0.28);
   border-left: 1px solid rgba(200, 210, 220, 0.15);
 }
 
@@ -258,28 +273,42 @@
   position: absolute;
   inset: 0;
   border-radius: 16px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, transparent 45%, rgba(0, 0, 0, 0.05) 100%);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.20) 0%, transparent 45%, rgba(0, 0, 0, 0.05) 100%);
   pointer-events: none;
 }
 
 .base-texture-silver {
   background:
-    /* Circular polishing marks — concentric rings like buffed chrome */
+    /* Secondary top-left glow — mirror-polish hotspot */
+    radial-gradient(ellipse 60% 55% at 25% 10%,
+      rgba(255, 255, 255, 0.18) 0%,
+      transparent 50%
+    ),
+    /* Faint buffed concentric rings — subtle texture, not a pattern */
     repeating-radial-gradient(ellipse 110% 100% at 45% 48%,
-      rgba(255, 255, 255, 0.0) 0px, rgba(255, 255, 255, 0.14) 2px,
-      rgba(200, 210, 220, 0.0) 4px, rgba(255, 255, 255, 0.10) 7px,
-      rgba(190, 200, 212, 0.0) 9px, rgba(255, 255, 255, 0.07) 12px,
-      transparent 14px
+      rgba(255, 255, 255, 0.0) 0px, rgba(255, 255, 255, 0.08) 2px,
+      rgba(200, 210, 220, 0.0) 5px, rgba(255, 255, 255, 0.05) 10px,
+      rgba(190, 200, 212, 0.0) 13px, rgba(255, 255, 255, 0.03) 16px,
+      transparent 18px
     ),
     /* Second ring set offset for natural irregularity */
     repeating-radial-gradient(ellipse 95% 120% at 58% 42%,
-      rgba(255, 255, 255, 0.0) 0px, rgba(255, 255, 255, 0.10) 3px,
-      rgba(200, 210, 220, 0.0) 5px, rgba(255, 255, 255, 0.06) 9px,
-      transparent 11px
+      rgba(255, 255, 255, 0.0) 0px, rgba(255, 255, 255, 0.05) 3px,
+      rgba(200, 210, 220, 0.0) 6px, rgba(255, 255, 255, 0.03) 11px,
+      transparent 14px
     ),
-    linear-gradient(155deg, rgba(245, 248, 252, 0.14) 0%, transparent 25%, rgba(90, 100, 110, 0.10) 55%, transparent 85%);
-  border-top: 1px solid rgba(240, 244, 248, 0.3);
-  border-left: 1px solid rgba(240, 244, 248, 0.2);
+    /* Primary diagonal specular streak */
+    linear-gradient(145deg,
+      rgba(250, 253, 255, 0.22) 0%,
+      rgba(250, 253, 255, 0.22) 18%,
+      transparent 45%,
+      rgba(70, 82, 96, 0.10) 82%,
+      transparent 100%
+    ),
+    /* Cool blue-white tint overlay for platinum feel */
+    linear-gradient(180deg, rgba(210, 222, 240, 0.06) 0%, transparent 100%);
+  border-top: 1px solid rgba(245, 250, 255, 0.38);
+  border-left: 1px solid rgba(245, 250, 255, 0.26);
 }
 
 .base-texture-silver::after {
@@ -287,7 +316,7 @@
   position: absolute;
   inset: 0;
   border-radius: 16px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.22) 0%, transparent 42%, rgba(0, 0, 0, 0.06) 100%);
+  background: linear-gradient(135deg, rgba(248, 252, 255, 0.28) 0%, transparent 42%, rgba(0, 0, 0, 0.06) 100%);
   pointer-events: none;
 }
 
@@ -311,8 +340,16 @@
       rgba(255, 255, 220, 0.22) 60%,
       rgba(255, 255, 255, 0.0) 100%
     ),
+    /* Fine brushed-gold micro-pattern aligned with specular */
+    repeating-linear-gradient(
+      112deg,
+      transparent 0px,
+      rgba(255, 240, 180, 0.04) 1px,
+      transparent 3px,
+      transparent 6px
+    ),
     /* Softer, golden shadows */
-    radial-gradient(ellipse 88% 82% at 95% 95%, rgba(200, 160, 60, 0.28) 0%, transparent 52%),
+    radial-gradient(ellipse 88% 82% at 95% 95%, rgba(180, 135, 40, 0.34) 0%, transparent 52%),
     radial-gradient(ellipse 52% 48% at 2% 90%, rgba(180, 140, 40, 0.18) 0%, transparent 58%),
     /* Edge vignette */
     radial-gradient(ellipse 128% 128% at 50% 50%, transparent 38%, rgba(180, 120, 20, 0.18) 100%),
@@ -330,8 +367,8 @@
   /* Tight top-left corner catch — smaller so amber dominates */
   background: linear-gradient(
     128deg,
-    rgba(255, 255, 245, 0.38) 0%,
-    rgba(255, 252, 220, 0.18) 18%,
+    rgba(255, 255, 245, 0.42) 0%,
+    rgba(255, 252, 220, 0.20) 18%,
     transparent 38%,
     rgba(200, 160, 60, 0.10) 100%
   );

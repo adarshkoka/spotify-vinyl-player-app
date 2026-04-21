@@ -112,7 +112,3 @@ State-Driven Transitions: Transition triggers must be tied to Spotify’s track_
 # Possible Changes
 
 - Combine the settings into one Gear Symbol button with low opacity, that is positioned at the bottom right. This settings button combines the settings into one, and contains the Base Color, Tonearm color, Logout button, and the enable/disable LEDs radio button. Add setting for Enable/disable LEDs radio button, add this radio button to allow the user to disable the LEDs at the bottom of the record player. 
-
-- During the disk animation, if the user double clicks anywhere on the background. or if the user opens the jacket, the animation should "skip" and the disc should go straight to the record player.
-
-- Add a radio button setting under the Gear symbol for "Manual Vinyl Player". This changes the disk animation to only move the Disk halfway out of the jacket (it will stick out of the jacket with a semi-circle shape). The user needs to manually drag the disc to the record player, and manually move the tonearm onto the disc (the tonearm should originally be positioned off of the disc area in the record player) in order to start the song. Once the user places the disc onto the record player and moves the tonearm to the disc, the disc will start spinning automatically and the song will begin to play.

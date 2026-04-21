@@ -17,10 +17,15 @@ interface MainAppPageProps {
 
 const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
   const { track, isPlaying, isLoading, error, contextUri, contextType, progressMs, durationMs, togglePlayback, skipNext, skipBack } = useSpotifyPlayback({ pollInterval: SPOTIFY_POLL_INTERVAL });
-  const { stage, jacketTrack, discTrack } = useTrackTransition(track, isPlaying);
+  const { stage, jacketTrack, discTrack, skipToPlatter } = useTrackTransition(track, isPlaying);
   const [gradientColors, setGradientColors] = useState<ExtractedColors>(DEFAULT_COLORS);
   const { baseBackground, baseColor, baseMaterial, tonearmColor, tonearmMaterial, setBaseColor, setTonearmColor, applyMaterialPreset } = usePlayerColors();
   const { isOpen: isTracklistOpen, isLoading: isTracklistLoading, tracks: tracklistTracks, selectedTrackUri, panelView, isSupportedContext, toggleOpen: toggleTracklist, close: closeTracklist, selectTrack, showAlbum, showPlaylist, showQueue, goBack, addToQueue } = useTracklistPanel(contextUri, contextType, track?.album ?? null, track?.uri);
+
+  const handleToggleTracklist = () => {
+    skipToPlatter();
+    toggleTracklist();
+  };
 
   const canScrub = stage === 'playing' || stage === 'paused';
   const { isScrubbing, scrubAngle, scrubDirection, ledSkip, handlers: scrubHandlers } = useDiscScrub({
@@ -46,7 +51,7 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
   }, [track?.id]);
 
   return (
-    <RoomScene gradientColors={gradientColors}>
+    <RoomScene gradientColors={gradientColors} onDoubleClick={skipToPlatter}>
       <div className="bottom-bar">
         <ColorCustomizer
           baseColor={baseColor}
@@ -92,7 +97,7 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
             panelView={panelView}
             isPlaylist={isSupportedContext && contextType === 'playlist'}
             albumTrackCount={track?.album?.total_tracks}
-            onToggleTracklist={toggleTracklist}
+            onToggleTracklist={handleToggleTracklist}
             onCloseTracklist={closeTracklist}
             onSelectTrack={selectTrack}
             onShowAlbum={() => { if (track?.album) showAlbum(track.album.id, track.album.uri); }}

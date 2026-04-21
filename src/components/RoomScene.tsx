@@ -11,6 +11,7 @@ interface GradientColors {
 interface RoomSceneProps {
   children: React.ReactNode;
   gradientColors?: GradientColors;
+  onDoubleClick?: () => void;
 }
 
 function toGradient(c: GradientColors): string {
@@ -19,7 +20,7 @@ function toGradient(c: GradientColors): string {
 
 const DEFAULT_GRADIENT = 'linear-gradient(160deg, #1a1a2e 0%, #16213e 30%, #0f3460 60%, #0a0a1a 100%)';
 
-const RoomScene: React.FC<RoomSceneProps> = ({ children, gradientColors }) => {
+const RoomScene: React.FC<RoomSceneProps> = ({ children, gradientColors, onDoubleClick }) => {
   // "current" is the gradient fully visible underneath
   // "next" is the new gradient fading in on top
   const [current, setCurrent] = useState<string>(DEFAULT_GRADIENT);
@@ -54,7 +55,7 @@ const RoomScene: React.FC<RoomSceneProps> = ({ children, gradientColors }) => {
   }, [gradientColors]);
 
   return (
-    <div className="room-scene">
+    <div className="room-scene" onDoubleClick={onDoubleClick}>
       {/* Base layer — current gradient */}
       <div className="room-background" style={{ background: current }} />
 

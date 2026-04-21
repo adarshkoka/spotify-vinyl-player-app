@@ -19,10 +19,15 @@ const STAGE_DURATIONS: Partial<Record<TransitionStage, number>> = {
   'disc-place': DISC_PLACE_DURATION,
 };
 
+const IN_FLIGHT_STAGES: TransitionStage[] = [
+  'jacket-enter', 'disc-emerge', 'disc-center', 'disc-rest', 'disc-place',
+];
+
 interface UseTrackTransitionReturn {
   stage: TransitionStage;
   jacketTrack: SpotifyTrack | null;
   discTrack: SpotifyTrack | null;
+  skipToPlatter: () => void;
 }
 
 export function useTrackTransition(
@@ -38,6 +43,8 @@ export function useTrackTransition(
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isPlayingRef = useRef(isPlaying);
   isPlayingRef.current = isPlaying;
+  const stageRef = useRef<TransitionStage>('empty');
+  stageRef.current = stage;
 
   const clearTimer = useCallback(() => {
     if (timerRef.current) {
@@ -127,10 +134,16 @@ export function useTrackTransition(
     }
   }, [isPlaying, stage]);
 
+  const skipToPlatter = useCallback(() => {
+    if (!IN_FLIGHT_STAGES.includes(stageRef.current)) return;
+    clearTimer();
+    setStage(isPlayingRef.current ? 'playing' : 'paused');
+  }, [clearTimer]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => clearTimer();
   }, [clearTimer]);
 
-  return { stage, jacketTrack, discTrack };
+  return { stage, jacketTrack, discTrack, skipToPlatter };
 }
