@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Static preview shown in the widget picker. Real widget renders via Glance
+     and pushes a composited disc bitmap; this is just a visual cue. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#16161A" />
+            <corners android:radius="16dp" />
+        </shape>
+    </item>
+    <item
+        android:width="120dp"
+        android:height="120dp"
+        android:gravity="left|center_vertical"
+        android:left="12dp"
+        android:drawable="@drawable/vinyl_disc_base" />
+    <item
+        android:width="100dp"
+        android:height="100dp"
+        android:gravity="left|center_vertical"
+        android:left="14dp"
+        android:top="-12dp"
+        android:drawable="@drawable/vinyl_tonearm_paused" />
+</layer-list>

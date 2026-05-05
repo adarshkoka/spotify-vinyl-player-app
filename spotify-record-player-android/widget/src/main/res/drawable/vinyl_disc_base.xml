@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Disc base used as a fallback / background under the composited art bitmap.
+     The art bitmap is drawn on top, so this only shows during boot or when
+     art is missing. Dark with concentric grooves matches the web app. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="180dp"
+    android:height="180dp"
+    android:viewportWidth="180"
+    android:viewportHeight="180">
+
+    <!-- Outer black disc -->
+    <path
+        android:pathData="M 90,90 m -88,0 a 88,88 0 1,0 176,0 a 88,88 0 1,0 -176,0"
+        android:fillColor="#0E0E10" />
+
+    <!-- Subtle concentric grooves -->
+    <path
+        android:pathData="M 90,90 m -82,0 a 82,82 0 1,0 164,0 a 82,82 0 1,0 -164,0"
+        android:strokeColor="#1A1A1F"
+        android:strokeWidth="0.6"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M 90,90 m -74,0 a 74,74 0 1,0 148,0 a 74,74 0 1,0 -148,0"
+        android:strokeColor="#1A1A1F"
+        android:strokeWidth="0.6"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M 90,90 m -66,0 a 66,66 0 1,0 132,0 a 66,66 0 1,0 -132,0"
+        android:strokeColor="#1A1A1F"
+        android:strokeWidth="0.6"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M 90,90 m -58,0 a 58,58 0 1,0 116,0 a 58,58 0 1,0 -116,0"
+        android:strokeColor="#1A1A1F"
+        android:strokeWidth="0.6"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M 90,90 m -50,0 a 50,50 0 1,0 100,0 a 50,50 0 1,0 -100,0"
+        android:strokeColor="#1A1A1F"
+        android:strokeWidth="0.6"
+        android:fillColor="#00000000" />
+
+    <!-- Center label placeholder (covered by album art at runtime) -->
+    <path
+        android:pathData="M 90,90 m -38,0 a 38,38 0 1,0 76,0 a 38,38 0 1,0 -76,0"
+        android:fillColor="#2A2A30" />
+
+    <!-- Spindle hole -->
+    <path
+        android:pathData="M 90,90 m -3,0 a 3,3 0 1,0 6,0 a 3,3 0 1,0 -6,0"
+        android:fillColor="#000000" />
+</vector>

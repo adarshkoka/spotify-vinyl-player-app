@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tonearm in the "down on the disc" position. Pivot at top-right; head rests
+     near the outer groove. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="100dp"
+    android:height="100dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+
+    <!-- Pivot base -->
+    <path
+        android:pathData="M 84,16 m -8,0 a 8,8 0 1,0 16,0 a 8,8 0 1,0 -16,0"
+        android:fillColor="#3A3A40" />
+    <path
+        android:pathData="M 84,16 m -3,0 a 3,3 0 1,0 6,0 a 3,3 0 1,0 -6,0"
+        android:fillColor="#1A1A1F" />
+
+    <!-- Arm body (rotated ~35° clockwise from vertical) -->
+    <path
+        android:pathData="M 82,18 L 86,22 L 50,68 L 46,64 Z"
+        android:fillColor="#C8C8CC" />
+
+    <!-- Cartridge head -->
+    <path
+        android:pathData="M 42,60 L 56,60 L 56,76 L 42,76 Z"
+        android:fillColor="#1F1F23" />
+    <path
+        android:pathData="M 47,76 L 51,76 L 50,80 L 48,80 Z"
+        android:fillColor="#0E0E10" />
+</vector>

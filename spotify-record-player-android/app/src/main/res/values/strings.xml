@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Spotify Vinyl</string>
+    <string name="login_button">Log in with Spotify</string>
+    <string name="widget_label">Spotify Vinyl Player</string>
+    <string name="widget_description">A spinning vinyl that mirrors your current Spotify playback.</string>
+</resources>
