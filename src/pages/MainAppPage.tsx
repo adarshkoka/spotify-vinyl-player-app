@@ -4,10 +4,13 @@ import { useTrackTransition } from '../hooks/useTrackTransition';
 import { usePlayerColors } from '../hooks/usePlayerColors';
 import { useTracklistPanel } from '../hooks/useTracklistPanel';
 import { useDiscScrub } from '../hooks/useDiscScrub';
+import { useLyrics } from '../hooks/useLyrics';
+import { useLyricsSettings } from '../hooks/useLyricsSettings';
 import RoomScene from '../components/RoomScene';
 import RecordPlayer from '../components/RecordPlayer';
 import PlayerControls from '../components/PlayerControls';
 import ColorCustomizer from '../components/ColorCustomizer';
+import LyricsDisplay from '../components/LyricsDisplay';
 import { extractColors, DEFAULT_COLORS, pickTracklistAccentColor, type ExtractedColors } from '../utils/colorExtractor';
 import { SPOTIFY_POLL_INTERVAL } from '../config';
 
@@ -19,7 +22,9 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
   const { track, isPlaying, isLoading, error, contextUri, contextType, progressMs, durationMs, togglePlayback, skipNext, skipBack } = useSpotifyPlayback({ pollInterval: SPOTIFY_POLL_INTERVAL });
   const { stage, jacketTrack, discTrack, skipToPlatter } = useTrackTransition(track, isPlaying);
   const [gradientColors, setGradientColors] = useState<ExtractedColors>(DEFAULT_COLORS);
-  const { baseBackground, baseColor, baseMaterial, tonearmColor, tonearmMaterial, setBaseColor, setTonearmColor, applyMaterialPreset } = usePlayerColors();
+  const { baseBackground, baseColor, baseMaterial, tonearmColor, tonearmMaterial, baseFavorites, tonearmFavorites, setBaseColor, setTonearmColor, applyMaterialPreset, addFavorite } = usePlayerColors();
+  const { enabled: lyricsEnabled, setEnabled: setLyricsEnabled } = useLyricsSettings();
+  const { lines: lyricLines } = useLyrics(track, lyricsEnabled);
   const { isOpen: isTracklistOpen, isLoading: isTracklistLoading, tracks: tracklistTracks, selectedTrackUri, panelView, isSupportedContext, savedTrackUris, toggleOpen: toggleTracklist, close: closeTracklist, selectTrack, showAlbum, showPlaylist, showQueue, goBack, addToQueue, saveTrack } = useTracklistPanel(contextUri, contextType, track?.album ?? null, track?.uri);
 
   const handleToggleTracklist = () => {
@@ -58,9 +63,14 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
           tonearmColor={tonearmColor}
           baseMaterial={baseMaterial}
           tonearmMaterial={tonearmMaterial}
+          baseFavorites={baseFavorites}
+          tonearmFavorites={tonearmFavorites}
+          lyricsEnabled={lyricsEnabled}
           onSetBaseColor={setBaseColor}
           onSetTonearmColor={setTonearmColor}
           onApplyMaterialPreset={applyMaterialPreset}
+          onAddFavorite={addFavorite}
+          onSetLyricsEnabled={setLyricsEnabled}
         />
         <button onClick={onLogout} className="btn-logout">
           Logout
@@ -109,6 +119,13 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
             onSaveTrack={saveTrack}
             tracklistAvailable={tracklistAvailable}
             tracklistAccentColor={tracklistAccentColor}
+            lyricsOverlay={
+              <LyricsDisplay
+                lines={lyricLines}
+                progressMs={progressMs}
+                isPlaying={isPlaying}
+              />
+            }
           />
         </div>
 

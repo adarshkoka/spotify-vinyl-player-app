@@ -38,12 +38,25 @@ export const MATERIAL_PRESETS: MaterialPresetDef[] = [
   },
 ];
 
+export const MAX_FAVORITES = 8;
+
+const DEFAULT_FAVORITES: string[] = [
+  '#ff0000',
+  '#0000ff',
+  '#00ff00',
+  '#ffff00',
+  '#ff00ff',
+  '#000000',
+];
+
 interface StoredColors {
   baseBackground: string | null;
   baseColor: string;
   baseMaterial: MaterialPreset;
   tonearmColor: string;
   tonearmMaterial: MaterialPreset;
+  baseFavorites: string[];
+  tonearmFavorites: string[];
 }
 
 const DEFAULTS: StoredColors = {
@@ -52,6 +65,8 @@ const DEFAULTS: StoredColors = {
   baseMaterial: null,
   tonearmColor: '#252525',
   tonearmMaterial: null,
+  baseFavorites: DEFAULT_FAVORITES,
+  tonearmFavorites: DEFAULT_FAVORITES,
 };
 
 function load(): StoredColors {
@@ -91,6 +106,21 @@ export function usePlayerColors() {
     });
   }, []);
 
+  const addFavorite = useCallback((target: 'base' | 'tonearm', color: string) => {
+    const normalized = color.toLowerCase();
+    if (!/^#[0-9a-f]{6}$/.test(normalized)) return;
+    if (MATERIAL_PRESETS.some(p => p.color.toLowerCase() === normalized)) return;
+    setState(prev => {
+      const key = target === 'base' ? 'baseFavorites' : 'tonearmFavorites';
+      const existing = prev[key];
+      const filtered = existing.filter(c => c.toLowerCase() !== normalized);
+      const nextList = [normalized, ...filtered].slice(0, MAX_FAVORITES);
+      const next: StoredColors = { ...prev, [key]: nextList };
+      save(next);
+      return next;
+    });
+  }, []);
+
   const applyMaterialPreset = useCallback((target: 'base' | 'tonearm', presetId: NonNullable<MaterialPreset>) => {
     const preset = MATERIAL_PRESETS.find(p => p.id === presetId);
     if (!preset) return;
@@ -109,8 +139,11 @@ export function usePlayerColors() {
     baseMaterial: state.baseMaterial,
     tonearmColor: state.tonearmColor,
     tonearmMaterial: state.tonearmMaterial,
+    baseFavorites: state.baseFavorites,
+    tonearmFavorites: state.tonearmFavorites,
     setBaseColor,
     setTonearmColor,
     applyMaterialPreset,
+    addFavorite,
   };
 }

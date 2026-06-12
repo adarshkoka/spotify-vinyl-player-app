@@ -45,6 +45,7 @@ interface RecordPlayerProps {
   tracklistAvailable?: boolean;
   savedTrackUris?: Set<string>;
   onSaveTrack?: (trackUri: string) => Promise<void>;
+  lyricsOverlay?: React.ReactNode;
 }
 
 function getAlbumArtUrl(track: SpotifyTrack | null): string | null {
@@ -93,6 +94,7 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
   tracklistAvailable = true,
   savedTrackUris,
   onSaveTrack,
+  lyricsOverlay,
 }) => {
   const discArt = getAlbumArtUrl(discTrack);
   const jacketArt = getAlbumArtUrl(jacketTrack);
@@ -158,6 +160,7 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
 
       {/* Jacket + transitioning disc area */}
       <div className="transition-area">
+        {lyricsOverlay}
         {showJacket && (
           <AlbumJacket
             albumArtUrl={jacketArt}
