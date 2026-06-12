@@ -15,13 +15,12 @@ function getTonearmClass(stage: TransitionStage): string {
   return 'tonearm-resting';
 }
 
-function adjustHex(hex: string, amount: number): string {
+function darkenHex(hex: string, factor: number): string {
   const cleaned = hex.replace('#', '');
   if (!/^[0-9a-fA-F]{6}$/.test(cleaned)) return hex;
-  const clamp = (v: number) => Math.max(0, Math.min(255, v));
-  const r = clamp(parseInt(cleaned.slice(0, 2), 16) + amount);
-  const g = clamp(parseInt(cleaned.slice(2, 4), 16) + amount);
-  const b = clamp(parseInt(cleaned.slice(4, 6), 16) + amount);
+  const r = Math.round(parseInt(cleaned.slice(0, 2), 16) * factor);
+  const g = Math.round(parseInt(cleaned.slice(2, 4), 16) * factor);
+  const b = Math.round(parseInt(cleaned.slice(4, 6), 16) * factor);
   return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
 
@@ -45,7 +44,7 @@ const Tonearm: React.FC<TonearmProps> = ({
 
   const palette = tonearmMaterial ? MATERIAL_PALETTE[tonearmMaterial] : null;
   const fill      = palette?.light ?? tonearmColor;
-  const fillDark  = palette?.dark  ?? adjustHex(tonearmColor, -20);
+  const fillDark  = palette?.dark  ?? darkenHex(tonearmColor, 0.4);
   const edgeColor = palette?.edge  ?? 'rgba(255,255,255,0.1)';
 
   /* Which sheen gradient to use on the arm body tube */
