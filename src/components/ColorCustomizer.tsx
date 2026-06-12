@@ -11,11 +11,14 @@ interface ColorCustomizerProps {
   baseFavorites: string[];
   tonearmFavorites: string[];
   lyricsEnabled: boolean;
+  artBaseEnabled: boolean;
+  artBaseGradient: string;
   onSetBaseColor: (color: string) => void;
   onSetTonearmColor: (color: string) => void;
   onApplyMaterialPreset: (target: 'base' | 'tonearm', preset: NonNullable<MaterialPreset>) => void;
   onAddFavorite: (target: 'base' | 'tonearm', color: string) => void;
   onSetLyricsEnabled: (enabled: boolean) => void;
+  onSetArtBaseEnabled: (enabled: boolean) => void;
 }
 
 type ActivePicker = 'base' | 'tonearm' | null;
@@ -30,11 +33,14 @@ const ColorCustomizer: React.FC<ColorCustomizerProps> = ({
   baseFavorites,
   tonearmFavorites,
   lyricsEnabled,
+  artBaseEnabled,
+  artBaseGradient,
   onSetBaseColor,
   onSetTonearmColor,
   onApplyMaterialPreset,
   onAddFavorite,
   onSetLyricsEnabled,
+  onSetArtBaseEnabled,
 }) => {
   const [activePicker, setActivePicker] = useState<ActivePicker>(null);
   const [hexInput, setHexInput] = useState('');
@@ -231,9 +237,11 @@ const ColorCustomizer: React.FC<ColorCustomizerProps> = ({
       <div className="color-btns-row">
         <div className="color-btn-group">
           <button
-            className={`color-btn${activePicker === 'base' ? ' active' : ''}`}
+            className={`color-btn${activePicker === 'base' ? ' active' : ''}${artBaseEnabled ? ' art-base-active' : ''}`}
             onClick={() => togglePicker('base')}
-            style={{ '--btn-color': baseColor } as React.CSSProperties}
+            style={artBaseEnabled
+              ? { background: artBaseGradient }
+              : ({ '--btn-color': baseColor } as React.CSSProperties)}
             aria-label="Customize base color"
             title="Base color"
           />
@@ -258,6 +266,17 @@ const ColorCustomizer: React.FC<ColorCustomizerProps> = ({
             title="Toggle lyrics"
           />
           <span className="color-btn-label">Lyr</span>
+        </div>
+        <div className="color-btn-group">
+          <button
+            className={`color-btn art-btn${artBaseEnabled ? ' active' : ''}`}
+            onClick={() => onSetArtBaseEnabled(!artBaseEnabled)}
+            style={artBaseEnabled ? { background: artBaseGradient } : undefined}
+            aria-label="Toggle album-art base"
+            aria-pressed={artBaseEnabled}
+            title="Set base to album art gradient"
+          />
+          <span className="color-btn-label">Art</span>
         </div>
       </div>
     </div>

@@ -6,6 +6,7 @@ import { useTracklistPanel } from '../hooks/useTracklistPanel';
 import { useDiscScrub } from '../hooks/useDiscScrub';
 import { useLyrics } from '../hooks/useLyrics';
 import { useLyricsSettings } from '../hooks/useLyricsSettings';
+import { useArtBaseSettings } from '../hooks/useArtBaseSettings';
 import RoomScene from '../components/RoomScene';
 import RecordPlayer from '../components/RecordPlayer';
 import PlayerControls from '../components/PlayerControls';
@@ -25,6 +26,20 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
   const { baseBackground, baseColor, baseMaterial, tonearmColor, tonearmMaterial, baseFavorites, tonearmFavorites, setBaseColor, setTonearmColor, applyMaterialPreset, addFavorite } = usePlayerColors();
   const { enabled: lyricsEnabled, setEnabled: setLyricsEnabled } = useLyricsSettings();
   const { lines: lyricLines } = useLyrics(track, lyricsEnabled);
+  const { enabled: artBaseEnabled, setEnabled: setArtBaseEnabled } = useArtBaseSettings();
+
+  const effectiveBaseBackground = artBaseEnabled ? gradientColors.busyGradient : baseBackground;
+  const effectiveBaseColor = artBaseEnabled ? gradientColors.busyDominant : baseColor;
+  const effectiveBaseMaterial = artBaseEnabled ? null : baseMaterial;
+
+  const handleSetBaseColor = (color: string) => {
+    setArtBaseEnabled(false);
+    setBaseColor(color);
+  };
+  const handleApplyMaterialPreset = (target: 'base' | 'tonearm', preset: 'wood' | 'aluminum' | 'silver' | 'gold') => {
+    if (target === 'base') setArtBaseEnabled(false);
+    applyMaterialPreset(target, preset);
+  };
   const { isOpen: isTracklistOpen, isLoading: isTracklistLoading, tracks: tracklistTracks, selectedTrackUri, panelView, isSupportedContext, savedTrackUris, toggleOpen: toggleTracklist, close: closeTracklist, selectTrack, showAlbum, showPlaylist, showQueue, goBack, addToQueue, saveTrack } = useTracklistPanel(contextUri, contextType, track?.album ?? null, track?.uri);
 
   const handleToggleTracklist = () => {
@@ -66,11 +81,14 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
           baseFavorites={baseFavorites}
           tonearmFavorites={tonearmFavorites}
           lyricsEnabled={lyricsEnabled}
-          onSetBaseColor={setBaseColor}
+          artBaseEnabled={artBaseEnabled}
+          artBaseGradient={gradientColors.busyGradient}
+          onSetBaseColor={handleSetBaseColor}
           onSetTonearmColor={setTonearmColor}
-          onApplyMaterialPreset={applyMaterialPreset}
+          onApplyMaterialPreset={handleApplyMaterialPreset}
           onAddFavorite={addFavorite}
           onSetLyricsEnabled={setLyricsEnabled}
+          onSetArtBaseEnabled={setArtBaseEnabled}
         />
         <button onClick={onLogout} className="btn-logout">
           Logout
@@ -90,9 +108,9 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
             discTrack={discTrack}
             transitionStage={stage}
             onTogglePlayback={togglePlayback}
-            baseBackground={baseBackground}
-            baseColor={baseColor}
-            baseMaterial={baseMaterial}
+            baseBackground={effectiveBaseBackground}
+            baseColor={effectiveBaseColor}
+            baseMaterial={effectiveBaseMaterial}
             tonearmColor={tonearmColor}
             tonearmMaterial={tonearmMaterial}
             isScrubbing={isScrubbing}

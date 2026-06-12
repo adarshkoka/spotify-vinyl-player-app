@@ -4,7 +4,13 @@ export interface ExtractedColors {
   accent: string;
   dark: string;
   vibrantAccent: string;
+  /** Busier, less-darkened gradient derived from the same clusters — used for the player base. */
+  busyGradient: string;
+  /** Dominant cluster color, darkened for use as the solid baseColor when ART is on. */
+  busyDominant: string;
 }
+
+const DEFAULT_BUSY_GRADIENT = 'linear-gradient(135deg, #2e2e2e 0%, #222 35%, #1a1a1a 70%, #151515 100%)';
 
 const DEFAULT_COLORS: ExtractedColors = {
   primary: '#1a1a2e',
@@ -12,6 +18,8 @@ const DEFAULT_COLORS: ExtractedColors = {
   accent: '#0f3460',
   dark: '#0a0a1a',
   vibrantAccent: '#1DB954',
+  busyGradient: DEFAULT_BUSY_GRADIENT,
+  busyDominant: '#222222',
 };
 
 /**
@@ -68,12 +76,33 @@ export function extractColors(imageUrl: string): Promise<ExtractedColors> {
       // Darken all colors to be suitable as backgrounds
       const colors = diverse.map(c => darken(c, 0.35));
 
+      // Build the "busy" base gradient using all kMeans clusters by population.
+      // Less darkening (0.6 vs 0.35) keeps it vivid against the dark background,
+      // and a different angle (135 vs 160) and more stops add visual distinction.
+      const busyRaw = clusters.map(c => c.center);
+      const busyDarkened = busyRaw.map(c => darken(c, 0.6));
+      const busyStops = busyDarkened.length >= 5
+        ? [0, 22, 48, 74, 100]
+        : busyDarkened.length === 4
+          ? [0, 30, 65, 100]
+          : busyDarkened.length === 3
+            ? [0, 50, 100]
+            : busyDarkened.length === 2
+              ? [0, 100]
+              : [0];
+      const busyGradient = `linear-gradient(135deg, ${busyDarkened
+        .map((c, i) => `${toRgb(c)} ${busyStops[i]}%`)
+        .join(', ')})`;
+      const busyDominant = toRgb(busyDarkened[0] ?? [34, 34, 34]);
+
       resolve({
         dark: toRgb(colors[0]),
         primary: toRgb(colors[1] || colors[0]),
         secondary: toRgb(colors[2] || colors[1] || colors[0]),
         accent: toRgb(colors[3] || colors[2] || colors[1] || colors[0]),
         vibrantAccent: toRgb(brightestRaw || colors[3] || colors[0]),
+        busyGradient,
+        busyDominant,
       });
     };
 
