@@ -1134,27 +1134,6 @@
    ============================ */
 
 /* ============================
-   Utilities
-   ============================ */
-
-.btn-logout {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.35);
-  padding: 0.2rem 0.6rem;
-  border-radius: 9999px;
-  font-size: 0.6rem;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  line-height: 1;
-}
-
-.btn-logout:hover {
-  border-color: rgba(255, 255, 255, 0.5);
-  color: rgba(255, 255, 255, 0.7);
-}
-
-/* ============================
    Tonearm
    ============================ */
 
@@ -1217,27 +1196,6 @@
   gap: 0.5rem;
 }
 
-.color-btns-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.color-btn-group {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.15rem;
-}
-
-.color-btn-label {
-  font-size: 0.45rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: rgba(255, 255, 255, 0.3);
-  pointer-events: none;
-}
-
 .color-btn {
   width: 20px;
   height: 20px;
@@ -1256,22 +1214,141 @@
   transform: scale(1.15);
 }
 
-.color-btn.lyr-btn {
-  --btn-color: transparent;
+/* Settings panel */
+.gear-button {
+  background: transparent;
+  border: 0;
+  padding: 4px;
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease, background 0.15s ease;
 }
-.color-btn.lyr-btn.active {
-  --btn-color: #1DB954;
+.gear-button:hover,
+.gear-button.active {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.06);
 }
 
-.color-btn.art-btn {
-  --btn-color: transparent;
-}
-.color-btn.art-btn.active {
-  border-color: rgba(255, 255, 255, 0.7);
+.settings-panel {
+  background: rgba(18, 18, 18, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 0.75rem;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
 }
 
-.color-btn.art-base-active {
-  border-color: rgba(255, 255, 255, 0.5);
+.settings-title {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.35);
+  margin: 0;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  background: transparent;
+  border: 0;
+  padding: 0.35rem 0.25rem;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.75rem;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  font-family: inherit;
+}
+.settings-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.settings-row-icon {
+  cursor: pointer;
+  pointer-events: none;
+}
+.settings-row-label {
+  flex: 1;
+}
+.settings-row-chevron {
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.settings-picker-header {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.settings-back-btn {
+  background: transparent;
+  border: 0;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 1.3rem;
+  line-height: 1;
+  padding: 0 0.3rem 0.15rem 0;
+  margin: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+.settings-back-btn:hover {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.settings-logout-btn {
+  margin-top: 0.25rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.75rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+.settings-logout-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Lyrics radio (regular radio look, light grey inner fill when on) */
+.lyr-radio {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  background: transparent;
+  position: relative;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: border-color 0.15s ease;
+  box-sizing: border-box;
+}
+.lyr-radio:hover {
+  border-color: rgba(255, 255, 255, 0.75);
+}
+.lyr-radio.active::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  background: #c8c8c8;
+}
+
+/* Album-art preset swatch (static rainbow) */
+.art-preset-swatch {
+  background: linear-gradient(135deg, #ff6b6b 0%, #feca57 25%, #1dd1a1 50%, #48dbfb 75%, #5f27cd 100%) !important;
 }
 
 .color-popover {

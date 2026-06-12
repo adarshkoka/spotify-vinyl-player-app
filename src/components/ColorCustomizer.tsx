@@ -19,11 +19,18 @@ interface ColorCustomizerProps {
   onAddFavorite: (target: 'base' | 'tonearm', color: string) => void;
   onSetLyricsEnabled: (enabled: boolean) => void;
   onSetArtBaseEnabled: (enabled: boolean) => void;
+  onLogout: () => void;
 }
 
-type ActivePicker = 'base' | 'tonearm' | null;
+type View = 'main' | 'base' | 'tonearm';
 
 const PRESET_COLORS_LOWER = new Set(MATERIAL_PRESETS.map(p => p.color.toLowerCase()));
+
+const GearIcon: React.FC = () => (
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+    <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+  </svg>
+);
 
 const ColorCustomizer: React.FC<ColorCustomizerProps> = ({
   baseColor,
@@ -41,53 +48,64 @@ const ColorCustomizer: React.FC<ColorCustomizerProps> = ({
   onAddFavorite,
   onSetLyricsEnabled,
   onSetArtBaseEnabled,
+  onLogout,
 }) => {
-  const [activePicker, setActivePicker] = useState<ActivePicker>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [view, setView] = useState<View>('main');
   const [hexInput, setHexInput] = useState('');
   const [hsv, setHsv] = useState<Hsv>({ h: 0, s: 0, v: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const currentColor = activePicker === 'base' ? baseColor : tonearmColor;
-  const setCurrentColor = activePicker === 'base' ? onSetBaseColor : onSetTonearmColor;
-  const activeMaterial = activePicker === 'base' ? baseMaterial : tonearmMaterial;
-  const activeFavorites = activePicker === 'base' ? baseFavorites : tonearmFavorites;
+  const isPickerView = view === 'base' || view === 'tonearm';
+  const pickerTarget: 'base' | 'tonearm' = view === 'tonearm' ? 'tonearm' : 'base';
+  const currentColor = pickerTarget === 'base' ? baseColor : tonearmColor;
+  const setCurrentColor = pickerTarget === 'base' ? onSetBaseColor : onSetTonearmColor;
+  const activeMaterial = pickerTarget === 'base' ? baseMaterial : tonearmMaterial;
+  const activeFavorites = pickerTarget === 'base' ? baseFavorites : tonearmFavorites;
 
-  // Initialize HSV + hex from current color whenever the picker opens or switches target.
+  // Initialize HSV + hex from current color whenever a picker view opens.
   useEffect(() => {
-    if (!activePicker) return;
-    const color = activePicker === 'base' ? baseColor : tonearmColor;
+    if (!isPickerView) return;
+    const color = pickerTarget === 'base' ? baseColor : tonearmColor;
     setHsv(hexToHsv(color));
     setHexInput(color);
-    // intentionally omitting baseColor/tonearmColor — they update during slider drags
-    // and we don't want to override the local HSV mid-drag.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activePicker]);
+  }, [view]);
 
-  const closeWithSave = useCallback(() => {
-    if (activePicker) {
-      const target = activePicker;
-      const color = (target === 'base' ? baseColor : tonearmColor).toLowerCase();
-      const list = target === 'base' ? baseFavorites : tonearmFavorites;
-      const isPreset = PRESET_COLORS_LOWER.has(color);
-      const isInFavorites = list.some(c => c.toLowerCase() === color);
-      if (!isPreset && !isInFavorites && /^#[0-9a-f]{6}$/.test(color)) {
-        onAddFavorite(target, color);
-      }
+  // Auto-save current picker color to favorites (if non-preset and new).
+  const saveCurrentAsFavorite = useCallback(() => {
+    if (!isPickerView) return;
+    const color = (pickerTarget === 'base' ? baseColor : tonearmColor).toLowerCase();
+    const list = pickerTarget === 'base' ? baseFavorites : tonearmFavorites;
+    const isPreset = PRESET_COLORS_LOWER.has(color);
+    const isInFavorites = list.some(c => c.toLowerCase() === color);
+    if (!isPreset && !isInFavorites && /^#[0-9a-f]{6}$/.test(color)) {
+      onAddFavorite(pickerTarget, color);
     }
-    setActivePicker(null);
-  }, [activePicker, baseColor, tonearmColor, baseFavorites, tonearmFavorites, onAddFavorite]);
+  }, [isPickerView, pickerTarget, baseColor, tonearmColor, baseFavorites, tonearmFavorites, onAddFavorite]);
+
+  const goBack = useCallback(() => {
+    saveCurrentAsFavorite();
+    setView('main');
+  }, [saveCurrentAsFavorite]);
+
+  const closePanel = useCallback(() => {
+    saveCurrentAsFavorite();
+    setPanelOpen(false);
+    setView('main');
+  }, [saveCurrentAsFavorite]);
 
   // Close on outside click
   useEffect(() => {
-    if (!activePicker) return;
+    if (!panelOpen) return;
     const handler = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        closeWithSave();
+        closePanel();
       }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [activePicker, closeWithSave]);
+  }, [panelOpen, closePanel]);
 
   const emitFromHsv = (next: Hsv) => {
     setHsv(next);
@@ -110,8 +128,7 @@ const ColorCustomizer: React.FC<ColorCustomizerProps> = ({
   };
 
   const handlePresetClick = (presetId: NonNullable<MaterialPreset>) => {
-    if (!activePicker) return;
-    onApplyMaterialPreset(activePicker, presetId);
+    onApplyMaterialPreset(pickerTarget, presetId);
     const preset = MATERIAL_PRESETS.find(p => p.id === presetId);
     if (preset) {
       setHsv(hexToHsv(preset.color));
@@ -125,11 +142,12 @@ const ColorCustomizer: React.FC<ColorCustomizerProps> = ({
     setHexInput(color);
   };
 
-  const togglePicker = (picker: NonNullable<ActivePicker>) => {
-    if (activePicker === picker) {
-      closeWithSave();
+  const toggleGear = () => {
+    if (panelOpen) {
+      closePanel();
     } else {
-      setActivePicker(picker);
+      setView('main');
+      setPanelOpen(true);
     }
   };
 
@@ -139,146 +157,194 @@ const ColorCustomizer: React.FC<ColorCustomizerProps> = ({
 
   return (
     <div className="color-customizer" ref={containerRef}>
-      {activePicker && (
-        <div className="color-popover">
-          <p className="color-popover-label">
-            {activePicker === 'base' ? 'Player Base' : 'Tonearm'}
-          </p>
+      {panelOpen && (
+        <div className="settings-panel">
+          {view === 'main' && (
+            <>
+              <p className="settings-title">Settings</p>
 
-          {/* Favorites row */}
-          {activeFavorites.length > 0 && (
-            <div className="favorites-row" aria-label="Saved colors">
-              {activeFavorites.map(color => (
-                <button
-                  key={color}
-                  type="button"
-                  className={`favorite-swatch${color.toLowerCase() === currentColor.toLowerCase() ? ' active' : ''}`}
-                  style={{ background: color }}
-                  onClick={() => handleFavoriteClick(color)}
-                  aria-label={`Use color ${color}`}
-                  title={color}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Material preset tiles */}
-          <div className="material-presets-row">
-            {MATERIAL_PRESETS.map(preset => (
               <button
-                key={preset.id}
-                className={`material-preset-btn${activeMaterial === preset.id ? ' active' : ''}`}
-                onClick={() => handlePresetClick(preset.id)}
-                title={preset.label}
+                type="button"
+                className="settings-row"
+                onClick={() => setView('base')}
               >
                 <span
-                  className="material-preset-swatch"
-                  style={{ background: preset.gradient }}
+                  className="settings-row-icon color-btn"
+                  style={artBaseEnabled
+                    ? { background: artBaseGradient }
+                    : ({ '--btn-color': baseColor } as React.CSSProperties)}
+                  aria-hidden="true"
                 />
-                <span className="material-preset-label">{preset.label}</span>
+                <span className="settings-row-label">Base</span>
+                <span className="settings-row-chevron" aria-hidden="true">›</span>
               </button>
-            ))}
-          </div>
 
-          <div className="color-popover-divider" />
+              <button
+                type="button"
+                className="settings-row"
+                onClick={() => setView('tonearm')}
+              >
+                <span
+                  className="settings-row-icon color-btn"
+                  style={{ '--btn-color': tonearmColor } as React.CSSProperties}
+                  aria-hidden="true"
+                />
+                <span className="settings-row-label">Arm</span>
+                <span className="settings-row-chevron" aria-hidden="true">›</span>
+              </button>
 
-          {/* HSV sliders */}
-          <div className="hsv-sliders">
-            <input
-              type="range"
-              min={0}
-              max={360}
-              step={1}
-              value={Math.round(hsv.h)}
-              onChange={e => handleHueChange(Number(e.target.value))}
-              className="hsv-slider hsv-slider-hue"
-              aria-label="Hue"
-            />
-            <input
-              type="range"
-              min={0}
-              max={100}
-              step={1}
-              value={Math.round(hsv.s)}
-              onChange={e => handleSatChange(Number(e.target.value))}
-              className="hsv-slider"
-              style={{ background: satGradient }}
-              aria-label="Saturation"
-            />
-            <input
-              type="range"
-              min={0}
-              max={100}
-              step={1}
-              value={Math.round(hsv.v)}
-              onChange={e => handleValChange(Number(e.target.value))}
-              className="hsv-slider"
-              style={{ background: valGradient }}
-              aria-label="Value"
-            />
-          </div>
+              <button
+                type="button"
+                className="settings-row"
+                onClick={() => onSetLyricsEnabled(!lyricsEnabled)}
+                role="switch"
+                aria-checked={lyricsEnabled}
+              >
+                <span
+                  className={`lyr-radio${lyricsEnabled ? ' active' : ''}`}
+                  aria-hidden="true"
+                />
+                <span className="settings-row-label">Lyrics</span>
+              </button>
 
-          <div className="color-hex-row">
-            <span className="color-hex-swatch" style={{ background: currentColor }} />
-            <input
-              type="text"
-              value={hexInput}
-              onChange={e => handleHexInput(e.target.value)}
-              className="color-hex-input"
-              maxLength={7}
-              spellCheck={false}
-              placeholder="#000000"
-            />
-          </div>
+              <button
+                type="button"
+                className="settings-logout-btn"
+                onClick={onLogout}
+              >
+                Logout
+              </button>
+            </>
+          )}
+
+          {isPickerView && (
+            <>
+              <div className="settings-picker-header">
+                <button
+                  type="button"
+                  className="settings-back-btn"
+                  onClick={goBack}
+                  aria-label="Back"
+                >
+                  ‹
+                </button>
+                <p className="color-popover-label">
+                  {view === 'base' ? 'Player Base' : 'Tonearm'}
+                </p>
+              </div>
+
+              {/* Favorites row */}
+              {activeFavorites.length > 0 && (
+                <div className="favorites-row" aria-label="Saved colors">
+                  {activeFavorites.map(color => (
+                    <button
+                      key={color}
+                      type="button"
+                      className={`favorite-swatch${color.toLowerCase() === currentColor.toLowerCase() ? ' active' : ''}`}
+                      style={{ background: color }}
+                      onClick={() => handleFavoriteClick(color)}
+                      aria-label={`Use color ${color}`}
+                      title={color}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Material preset tiles (Album Art prepended for Base only) */}
+              <div className="material-presets-row">
+                {view === 'base' && (
+                  <button
+                    type="button"
+                    className={`material-preset-btn art-preset${artBaseEnabled ? ' active' : ''}`}
+                    onClick={() => onSetArtBaseEnabled(!artBaseEnabled)}
+                    title="Album art gradient"
+                  >
+                    <span className="material-preset-swatch art-preset-swatch" />
+                    <span className="material-preset-label">Album Art</span>
+                  </button>
+                )}
+                {MATERIAL_PRESETS.map(preset => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    className={`material-preset-btn${activeMaterial === preset.id ? ' active' : ''}`}
+                    onClick={() => handlePresetClick(preset.id)}
+                    title={preset.label}
+                  >
+                    <span
+                      className="material-preset-swatch"
+                      style={{ background: preset.gradient }}
+                    />
+                    <span className="material-preset-label">{preset.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="color-popover-divider" />
+
+              {/* HSV sliders */}
+              <div className="hsv-sliders">
+                <input
+                  type="range"
+                  min={0}
+                  max={360}
+                  step={1}
+                  value={Math.round(hsv.h)}
+                  onChange={e => handleHueChange(Number(e.target.value))}
+                  className="hsv-slider hsv-slider-hue"
+                  aria-label="Hue"
+                />
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={Math.round(hsv.s)}
+                  onChange={e => handleSatChange(Number(e.target.value))}
+                  className="hsv-slider"
+                  style={{ background: satGradient }}
+                  aria-label="Saturation"
+                />
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={Math.round(hsv.v)}
+                  onChange={e => handleValChange(Number(e.target.value))}
+                  className="hsv-slider"
+                  style={{ background: valGradient }}
+                  aria-label="Value"
+                />
+              </div>
+
+              <div className="color-hex-row">
+                <span className="color-hex-swatch" style={{ background: currentColor }} />
+                <input
+                  type="text"
+                  value={hexInput}
+                  onChange={e => handleHexInput(e.target.value)}
+                  className="color-hex-input"
+                  maxLength={7}
+                  spellCheck={false}
+                  placeholder="#000000"
+                />
+              </div>
+            </>
+          )}
         </div>
       )}
 
-      {/* Trigger buttons */}
-      <div className="color-btns-row">
-        <div className="color-btn-group">
-          <button
-            className={`color-btn${activePicker === 'base' ? ' active' : ''}${artBaseEnabled ? ' art-base-active' : ''}`}
-            onClick={() => togglePicker('base')}
-            style={artBaseEnabled
-              ? { background: artBaseGradient }
-              : ({ '--btn-color': baseColor } as React.CSSProperties)}
-            aria-label="Customize base color"
-            title="Base color"
-          />
-          <span className="color-btn-label">Base</span>
-        </div>
-        <div className="color-btn-group">
-          <button
-            className={`color-btn${activePicker === 'tonearm' ? ' active' : ''}`}
-            onClick={() => togglePicker('tonearm')}
-            style={{ '--btn-color': tonearmColor } as React.CSSProperties}
-            aria-label="Customize tonearm color"
-            title="Tonearm color"
-          />
-          <span className="color-btn-label">Arm</span>
-        </div>
-        <div className="color-btn-group">
-          <button
-            className={`color-btn lyr-btn${lyricsEnabled ? ' active' : ''}`}
-            onClick={() => onSetLyricsEnabled(!lyricsEnabled)}
-            aria-label="Toggle lyrics"
-            aria-pressed={lyricsEnabled}
-            title="Toggle lyrics"
-          />
-          <span className="color-btn-label">Lyr</span>
-        </div>
-        <div className="color-btn-group">
-          <button
-            className={`color-btn art-btn${artBaseEnabled ? ' active' : ''}`}
-            onClick={() => onSetArtBaseEnabled(!artBaseEnabled)}
-            style={artBaseEnabled ? { background: artBaseGradient } : undefined}
-            aria-label="Toggle album-art base"
-            aria-pressed={artBaseEnabled}
-            title="Set base to album art gradient"
-          />
-          <span className="color-btn-label">Art</span>
-        </div>
-      </div>
+      <button
+        type="button"
+        className={`gear-button${panelOpen ? ' active' : ''}`}
+        onClick={toggleGear}
+        aria-label="Settings"
+        aria-expanded={panelOpen}
+        title="Settings"
+      >
+        <GearIcon />
+      </button>
     </div>
   );
 };

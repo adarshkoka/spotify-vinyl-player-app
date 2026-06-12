@@ -76,7 +76,7 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
         <ColorCustomizer
           baseColor={baseColor}
           tonearmColor={tonearmColor}
-          baseMaterial={baseMaterial}
+          baseMaterial={effectiveBaseMaterial}
           tonearmMaterial={tonearmMaterial}
           baseFavorites={baseFavorites}
           tonearmFavorites={tonearmFavorites}
@@ -89,10 +89,8 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
           onAddFavorite={addFavorite}
           onSetLyricsEnabled={setLyricsEnabled}
           onSetArtBaseEnabled={setArtBaseEnabled}
+          onLogout={onLogout}
         />
-        <button onClick={onLogout} className="btn-logout">
-          Logout
-        </button>
       </div>
 
       <div className="flex flex-col items-center w-full" style={{ gap: 'var(--gap-player-to-song, 16px)' }}>
