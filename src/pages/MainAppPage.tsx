@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSpotifyPlayback } from '../hooks/useSpotifyPlayback';
 import { useTrackTransition } from '../hooks/useTrackTransition';
 import { usePlayerColors } from '../hooks/usePlayerColors';
@@ -40,7 +40,7 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
     if (target === 'base') setArtBaseEnabled(false);
     applyMaterialPreset(target, preset);
   };
-  const { isOpen: isTracklistOpen, isLoading: isTracklistLoading, tracks: tracklistTracks, selectedTrackUri, panelView, isSupportedContext, savedTrackUris, toggleOpen: toggleTracklist, close: closeTracklist, selectTrack, showAlbum, showPlaylist, showQueue, goBack, addToQueue, saveTrack } = useTracklistPanel(contextUri, contextType, track?.album ?? null, track?.uri, refetchPlayback);
+  const { isOpen: isTracklistOpen, isLoading: isTracklistLoading, tracks: tracklistTracks, selectedTrackUri, panelView, isSupportedContext, savedTrackUris, isLoadingMoreLiked, likedHasMore, toggleOpen: toggleTracklist, close: closeTracklist, selectTrack, showAlbum, showPlaylist, showQueue, showLikedSongs, loadMoreLikedSongs, goBack, addToQueue, saveTrack } = useTracklistPanel(contextUri, contextType, track?.album ?? null, track?.uri, refetchPlayback);
 
   const handleToggleTracklist = () => {
     skipToPlatter();
@@ -69,6 +69,18 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
       setGradientColors(DEFAULT_COLORS);
     }
   }, [track?.id]);
+
+  // Auto-open Liked Songs on first load if no song is currently playing on the
+  // user's Spotify account — so the user can start a song without leaving the app.
+  const autoOpenedRef = useRef(false);
+  useEffect(() => {
+    if (autoOpenedRef.current) return;
+    if (isLoading) return;
+    autoOpenedRef.current = true;
+    if (!track) {
+      showLikedSongs();
+    }
+  }, [isLoading, track, showLikedSongs]);
 
   return (
     <RoomScene gradientColors={gradientColors} onDoubleClick={skipToPlatter}>
@@ -129,6 +141,10 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
             onShowAlbum={() => { if (track?.album) showAlbum(track.album.id, track.album.uri); }}
             onShowPlaylist={showPlaylist}
             onShowQueue={showQueue}
+            onShowLikedSongs={showLikedSongs}
+            onLoadMoreLikedSongs={loadMoreLikedSongs}
+            isLoadingMoreLiked={isLoadingMoreLiked}
+            likedHasMore={likedHasMore}
             onGoBack={goBack}
             onAddToQueue={addToQueue}
             savedTrackUris={savedTrackUris}

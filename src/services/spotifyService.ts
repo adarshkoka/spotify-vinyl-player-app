@@ -278,11 +278,72 @@ export async function playTrackInContext(contextUri: string, trackUri: string): 
   });
 }
 
-export async function playTrackByUri(trackUri: string): Promise<void> {
-  await spotifyApiCall<void>('me/player/play', {
+export async function playTrackByUri(trackUri: string, deviceId?: string): Promise<void> {
+  const path = deviceId
+    ? `me/player/play?device_id=${encodeURIComponent(deviceId)}`
+    : 'me/player/play';
+  await spotifyApiCall<void>(path, {
     method: 'PUT',
     body: { uris: [trackUri] },
   });
+}
+
+/** Play a list of track URIs, optionally starting at a specific URI. Spotify caps `uris` at 100. */
+export async function playUriList(uris: string[], offsetUri: string | undefined, deviceId?: string): Promise<void> {
+  const path = deviceId
+    ? `me/player/play?device_id=${encodeURIComponent(deviceId)}`
+    : 'me/player/play';
+  const body: Record<string, unknown> = { uris: uris.slice(0, 100) };
+  if (offsetUri) body.offset = { uri: offsetUri };
+  await spotifyApiCall<void>(path, { method: 'PUT', body });
+}
+
+/** Toggle Spotify's shuffle state. */
+export async function setShuffleState(state: boolean, deviceId?: string): Promise<void> {
+  const params = new URLSearchParams({ state: String(state) });
+  if (deviceId) params.set('device_id', deviceId);
+  await spotifyApiCall<void>(`me/player/shuffle?${params.toString()}`, { method: 'PUT' });
+}
+
+export interface SpotifyDevice {
+  id: string;
+  is_active: boolean;
+  is_restricted: boolean;
+  name: string;
+  type: string;
+}
+
+interface SpotifyDevicesResponse {
+  devices: SpotifyDevice[];
+}
+
+/** List the user's available Spotify Connect devices. */
+export async function getAvailableDevices(): Promise<SpotifyDevice[]> {
+  const data = await spotifyApiCall<SpotifyDevicesResponse>('me/player/devices');
+  return (data.devices ?? []).filter(d => !d.is_restricted && !!d.id);
+}
+
+interface SpotifyPlaybackStateResponse {
+  device?: SpotifyDevice | null;
+}
+
+/**
+ * Return the device of the user's most-recently-used Spotify session (active
+ * OR paused). Falls back to the first available device when there's no
+ * current session at all. Used by the Liked Songs panel to pick a sensible
+ * target device when nothing is currently playing.
+ */
+export async function getRecentDevice(): Promise<SpotifyDevice | null> {
+  try {
+    const data = await spotifyApiCall<SpotifyPlaybackStateResponse | null>('me/player');
+    if (data?.device && !data.device.is_restricted && data.device.id) {
+      return data.device;
+    }
+  } catch (err) {
+    console.warn('me/player lookup failed:', err);
+  }
+  const devices = await getAvailableDevices();
+  return devices[0] ?? null;
 }
 
 // --- Queue ---
@@ -343,6 +404,43 @@ export async function seekToPosition(positionMs: number): Promise<void> {
 }
 
 // --- Library (Liked Songs) ---
+
+interface SpotifyLikedSongsResponse {
+  items: Array<{
+    track: {
+      uri: string;
+      name: string;
+      artists: SpotifyArtist[];
+      duration_ms: number;
+    } | null;
+  }>;
+  next: string | null;
+  total: number;
+}
+
+export interface LikedSongsPage {
+  tracks: ContextTrack[];
+  hasMore: boolean;
+}
+
+export async function getLikedSongs(limit = 50, offset = 0): Promise<LikedSongsPage> {
+  const data = await spotifyApiCall<SpotifyLikedSongsResponse>(
+    `me/tracks?limit=${limit}&offset=${offset}`
+  );
+  const tracks: ContextTrack[] = data.items
+    .filter(item => item.track != null)
+    .map((item, i) => {
+      const t = item.track!;
+      return {
+        uri: t.uri,
+        name: t.name,
+        artists: t.artists.map(a => a.name).join(', '),
+        track_number: offset + i + 1,
+        duration_ms: t.duration_ms,
+      };
+    });
+  return { tracks, hasMore: data.next != null };
+}
 
 export async function checkSavedTracks(trackIds: string[]): Promise<boolean[]> {
   if (trackIds.length === 0) return [];

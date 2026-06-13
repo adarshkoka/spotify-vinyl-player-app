@@ -17,11 +17,15 @@ interface TracklistPanelProps {
   panelView: PanelView;
   isPlaylist: boolean;
   albumTrackCount?: number;
+  isLoadingMoreLiked?: boolean;
+  likedHasMore?: boolean;
   onSelectTrack: (trackUri: string) => void;
   onClose: () => void;
   onShowAlbum?: () => void;
   onShowPlaylist?: () => void;
   onShowQueue?: () => void;
+  onShowLikedSongs?: () => void;
+  onLoadMoreLikedSongs?: () => void;
   onGoBack?: () => void;
   onAddToQueue?: (trackUri: string) => Promise<void>;
   savedTrackUris?: Set<string>;
@@ -105,11 +109,15 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
   panelView,
   isPlaylist,
   albumTrackCount,
+  isLoadingMoreLiked = false,
+  likedHasMore = false,
   onSelectTrack,
   onClose,
   onShowAlbum,
   onShowPlaylist,
   onShowQueue,
+  onShowLikedSongs,
+  onLoadMoreLikedSongs,
   onGoBack,
   onAddToQueue,
   savedTrackUris,
@@ -117,18 +125,40 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
 }) => {
   const showTrackNumbers = panelView !== 'playlist';
   const showAlbumBtn = isPlaylist && (!albumTrackCount || albumTrackCount > 1);
-  const panelTitle = panelView === 'playlist' ? 'Playlist' : panelView === 'album' ? 'Album' : 'Queue';
+  const panelTitle =
+    panelView === 'playlist' ? 'Playlist' :
+    panelView === 'album' ? 'Album' :
+    panelView === 'liked' ? 'Liked Songs' :
+    'Queue';
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Scroll the active track into view whenever tracks finish loading or the panel opens
   useEffect(() => {
     if (!isOpen || isLoading || !currentTrackUri || !scrollRef.current) return;
+    // Skip auto-scroll while we're in the liked-songs view — the active track is
+    // probably outside the loaded page and would force an unwanted jump to the top.
+    if (panelView === 'liked') return;
     const active = scrollRef.current.querySelector<HTMLElement>('.tracklist-item-active');
     if (active) {
       active.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
-  }, [isOpen, isLoading, tracks, currentTrackUri]);
+  }, [isOpen, isLoading, tracks, currentTrackUri, panelView]);
+
+  // Infinite scroll: load the next page of Liked Songs when the user nears the bottom.
+  useEffect(() => {
+    if (panelView !== 'liked' || !onLoadMoreLikedSongs) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    const handleScroll = () => {
+      if (!likedHasMore || isLoadingMoreLiked) return;
+      if (el.scrollHeight - el.scrollTop - el.clientHeight < 200) {
+        onLoadMoreLikedSongs();
+      }
+    };
+    el.addEventListener('scroll', handleScroll);
+    return () => el.removeEventListener('scroll', handleScroll);
+  }, [panelView, likedHasMore, isLoadingMoreLiked, onLoadMoreLikedSongs]);
 
   return (
     <div className={`tracklist-panel ${isOpen ? 'tracklist-panel-open' : ''}`}>
@@ -146,6 +176,9 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
             {panelView === 'queue' && (
               <button className="tracklist-toggle-btn" onClick={onGoBack}>← Back</button>
             )}
+            {panelView === 'liked' && (
+              <button className="tracklist-toggle-btn" onClick={onGoBack}>← Back</button>
+            )}
           </div>
 
           {/* Centered panel title */}
@@ -158,6 +191,9 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
             )}
             {panelView === 'album' && (
               <button className="tracklist-toggle-btn" onClick={onShowQueue}>Queue →</button>
+            )}
+            {panelView === 'queue' && onShowLikedSongs && (
+              <button className="tracklist-toggle-btn" onClick={onShowLikedSongs}>Liked →</button>
             )}
             <button className="tracklist-close-btn" onClick={onClose} aria-label="Close tracklist">
               <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
@@ -212,6 +248,12 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
               <span className="tracklist-dur">{formatDuration(t.duration_ms)}</span>
             </button>
           ))
+          )}
+          {panelView === 'liked' && isLoadingMoreLiked && (
+            <div className="tracklist-skeleton-row">
+              <div className="tracklist-skeleton-title" />
+              <div className="tracklist-skeleton-artist" />
+            </div>
           )}
         </div>
       </div>

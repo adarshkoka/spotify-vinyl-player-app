@@ -39,6 +39,10 @@ interface RecordPlayerProps {
   onShowAlbum?: () => void;
   onShowPlaylist?: () => void;
   onShowQueue?: () => void;
+  onShowLikedSongs?: () => void;
+  onLoadMoreLikedSongs?: () => void;
+  isLoadingMoreLiked?: boolean;
+  likedHasMore?: boolean;
   onGoBack?: () => void;
   onAddToQueue?: (trackUri: string) => Promise<void>;
   tracklistAccentColor?: string;
@@ -88,6 +92,10 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
   onShowAlbum,
   onShowPlaylist,
   onShowQueue,
+  onShowLikedSongs,
+  onLoadMoreLikedSongs,
+  isLoadingMoreLiked = false,
+  likedHasMore = false,
   onGoBack,
   onAddToQueue,
   tracklistAccentColor,
@@ -159,7 +167,7 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
       </div>
 
       {/* Jacket + transitioning disc area */}
-      <div className="transition-area">
+      <div className={`transition-area ${transitionStage === 'empty' ? 'transition-area-empty' : ''}`}>
         {lyricsOverlay}
         {showJacket && (
           <AlbumJacket
@@ -196,6 +204,10 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
         onShowAlbum={onShowAlbum}
         onShowPlaylist={onShowPlaylist}
         onShowQueue={onShowQueue}
+        onShowLikedSongs={onShowLikedSongs}
+        onLoadMoreLikedSongs={onLoadMoreLikedSongs}
+        isLoadingMoreLiked={isLoadingMoreLiked}
+        likedHasMore={likedHasMore}
         onGoBack={onGoBack}
         onAddToQueue={onAddToQueue}
         savedTrackUris={savedTrackUris}

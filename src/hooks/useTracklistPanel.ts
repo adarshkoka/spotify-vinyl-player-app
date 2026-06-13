@@ -3,15 +3,21 @@ import {
   getAlbumTracks,
   getPlaylistTracks,
   getQueue,
+  getLikedSongs,
+  getRecentDevice,
   playTrackInContext,
   playTrackByUri,
+  playUriList,
+  setShuffleState,
   addToQueue as apiAddToQueue,
   checkSavedTracks,
   saveTracksToLibrary,
   type ContextTrack,
 } from '../services/spotifyService';
 
-export type PanelView = 'playlist' | 'album' | 'queue';
+export type PanelView = 'playlist' | 'album' | 'queue' | 'liked';
+
+const LIKED_PAGE_SIZE = 50;
 
 interface UseTracklistPanelReturn {
   isOpen: boolean;
@@ -21,12 +27,16 @@ interface UseTracklistPanelReturn {
   panelView: PanelView;
   isSupportedContext: boolean;
   savedTrackUris: Set<string>;
+  isLoadingMoreLiked: boolean;
+  likedHasMore: boolean;
   toggleOpen: () => void;
   close: () => void;
   selectTrack: (trackUri: string) => Promise<void>;
   showAlbum: (albumId: string, albumUri: string) => void;
   showPlaylist: () => void;
   showQueue: () => void;
+  showLikedSongs: () => Promise<void>;
+  loadMoreLikedSongs: () => Promise<void>;
   goBack: () => void;
   addToQueue: (trackUri: string) => Promise<void>;
   saveTrack: (trackUri: string) => Promise<void>;
@@ -47,6 +57,9 @@ export function useTracklistPanel(
   const [savedTrackUris, setSavedTrackUris] = useState<Set<string>>(new Set());
   const [overrideUri, setOverrideUri] = useState<string | null>(null);
   const [overrideType, setOverrideType] = useState<string | null>(null);
+  const [likedOffset, setLikedOffset] = useState(0);
+  const [likedHasMore, setLikedHasMore] = useState(true);
+  const [isLoadingMoreLiked, setIsLoadingMoreLiked] = useState(false);
   const prevViewRef = useRef<PanelView>('playlist');
   const panelViewRef = useRef<PanelView>('playlist');
   const queueRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -59,6 +72,10 @@ export function useTracklistPanel(
   const cacheRef = useRef<Record<string, ContextTrack[]>>({});
   const refetchPlaybackRef = useRef(refetchPlayback);
   refetchPlaybackRef.current = refetchPlayback;
+  // Mirror tracks to a ref so selectTrack can read the latest Liked Songs URIs
+  // without re-creating the callback on every page-load.
+  const tracksRef = useRef<ContextTrack[]>([]);
+  useEffect(() => { tracksRef.current = tracks; }, [tracks]);
 
   const checkAndMergeSaved = useCallback(async (trackList: ContextTrack[]) => {
     if (trackList.length === 0) return;
@@ -152,6 +169,23 @@ export function useTracklistPanel(
     }
   }, [checkAndMergeSaved]);
 
+  const fetchLikedSongsPage = useCallback(async (offset: number, append: boolean): Promise<void> => {
+    try {
+      const { tracks: newTracks, hasMore } = await getLikedSongs(LIKED_PAGE_SIZE, offset);
+      if (panelViewRef.current !== 'liked') return;
+      setTracks(prev => append ? [...prev, ...newTracks] : newTracks);
+      checkAndMergeSaved(newTracks);
+      setLikedOffset(offset + newTracks.length);
+      setLikedHasMore(hasMore);
+    } catch (err) {
+      console.error('Failed to fetch liked songs:', err);
+      if (panelViewRef.current === 'liked' && !append) {
+        setTracks([]);
+      }
+      setLikedHasMore(false);
+    }
+  }, [checkAndMergeSaved]);
+
   // Clear stale selection when the actual playing track changes (e.g. external skip)
   useEffect(() => {
     setSelectedTrackUri(null);
@@ -162,15 +196,17 @@ export function useTracklistPanel(
   useEffect(() => {
     const effectiveUri = isSupportedContext ? contextUri : fallbackAlbum?.uri ?? null;
     if (prevEffectiveUriRef.current !== null && effectiveUri !== prevEffectiveUriRef.current) {
-      // Context changed — reset to default view
+      // Context changed — always clear stale override URIs so a later back-nav
+      // from queue/liked fetches the *new* album/playlist, not the previous one.
       setOverrideUri(null);
       setOverrideType(null);
-      if (panelView !== 'queue') {
+      // Don't yank the user out of views they explicitly navigated to.
+      if (panelView !== 'queue' && panelView !== 'liked') {
         setPanelView(defaultView);
-      }
-      if (isOpen && effectiveUri && panelView !== 'queue') {
-        const type = isSupportedContext ? contextType! : 'album';
-        fetchTracksFor(effectiveUri, type);
+        if (isOpen && effectiveUri) {
+          const type = isSupportedContext ? contextType! : 'album';
+          fetchTracksFor(effectiveUri, type);
+        }
       }
     }
     prevEffectiveUriRef.current = effectiveUri;
@@ -284,7 +320,35 @@ export function useTracklistPanel(
     fetchQueueTracks().finally(() => setIsLoading(false));
   }, [panelView, fetchQueueTracks]);
 
+  const showLikedSongs = useCallback(async () => {
+    prevViewRef.current = panelView;
+    setPanelView('liked');
+    panelViewRef.current = 'liked';
+    setOverrideUri(null);
+    setOverrideType(null);
+    setTracks([]);
+    setLikedOffset(0);
+    setLikedHasMore(true);
+    setIsLoading(true);
+    setIsOpen(true);
+    await fetchLikedSongsPage(0, false);
+    setIsLoading(false);
+  }, [panelView, fetchLikedSongsPage]);
+
+  const loadMoreLikedSongs = useCallback(async () => {
+    if (panelViewRef.current !== 'liked') return;
+    if (!likedHasMore || isLoadingMoreLiked) return;
+    setIsLoadingMoreLiked(true);
+    await fetchLikedSongsPage(likedOffset, true);
+    setIsLoadingMoreLiked(false);
+  }, [likedHasMore, isLoadingMoreLiked, likedOffset, fetchLikedSongsPage]);
+
   const goBack = useCallback(() => {
+    // From Liked Songs → back to Queue (Queue is the only entry point to Liked).
+    if (panelViewRef.current === 'liked') {
+      showQueue();
+      return;
+    }
     if (prevViewRef.current === 'album') {
       const albumUri = (overrideType === 'album' ? overrideUri : null) ?? fallbackAlbum?.uri ?? null;
       if (albumUri) {
@@ -303,9 +367,41 @@ export function useTracklistPanel(
       }
     }
     showPlaylist();
-  }, [overrideType, overrideUri, fallbackAlbum?.uri, fetchTracksFor, showPlaylist]);
+  }, [overrideType, overrideUri, fallbackAlbum?.uri, fetchTracksFor, showPlaylist, showQueue]);
 
   const selectTrack = useCallback(async (trackUri: string) => {
+    if (panelView === 'liked') {
+      setSelectedTrackUri(trackUri);
+      try {
+        // Liked Songs is typically opened when nothing is currently playing, which
+        // means there's probably no active Spotify device. The play endpoint returns
+        // 404 in that case unless we explicitly target one. Look up the user's most
+        // recently used device via me/player (still online + most-recent), falling
+        // back to the first listed device when no recent session exists.
+        const device = await getRecentDevice();
+
+        // Play through the loaded Liked Songs in shuffle order, so Spotify has a
+        // list to shuffle through rather than looping the single clicked track.
+        // We pass at most 100 URIs (Spotify's cap), starting from the clicked song
+        // so it plays first; subsequent tracks shuffle.
+        const allUris = tracksRef.current.map(t => t.uri);
+        const startIdx = Math.max(0, allUris.indexOf(trackUri));
+        const window = allUris.slice(startIdx, startIdx + 100);
+        if (window.length > 1) {
+          await playUriList(window, trackUri, device?.id);
+          // Enable shuffle so the rest of the window plays in random order.
+          try { await setShuffleState(true, device?.id); } catch { /* shuffle is best-effort */ }
+        } else {
+          // Fallback for the unexpected case where we somehow don't have the
+          // clicked track in our loaded list — just play the single URI.
+          await playTrackByUri(trackUri, device?.id);
+        }
+        refetchPlaybackRef.current?.({ untilTrackChanges: true });
+      } catch (err) {
+        console.error('Failed to play liked song:', err);
+      }
+      return;
+    }
     if (panelView === 'queue') {
       // Queue tracks may come from mixed contexts. Prefer context playback when possible,
       // else fall back to direct URI playback.
@@ -316,16 +412,25 @@ export function useTracklistPanel(
           queueRefreshTimerRef.current = null;
         }
 
-        // Queue tracks come from the current Spotify context. Use playTrackInContext
-        // with the real contextUri (not the panel-navigation override) so Spotify
-        // keeps the playlist/album context intact — otherwise playing via URI alone
-        // creates a single-track ad-hoc context and the queue shows that one song
-        // repeated. Fall back to playTrackByUri only when there is no known context.
-        const playContext = isSupportedContext ? contextUri : (fallbackAlbum?.uri ?? null);
-        if (playContext) {
-          await playTrackInContext(playContext, trackUri);
+        // Prefer the REAL Spotify context (album/playlist) so playback keeps that
+        // context intact. If there's no real context (e.g. after Liked Songs
+        // auto-shuffle, where Spotify reports context=null), use playUriList with
+        // the rest of the queue so Spotify has something to play after the clicked
+        // track — otherwise a single-URI play would just loop that one song.
+        // The fallbackAlbum is NOT a safe substitute for contextUri here, because
+        // a queue row often isn't part of the current track's album and Spotify
+        // will reject "play X in album Y" when X doesn't belong to Y.
+        if (isSupportedContext && contextUri) {
+          await playTrackInContext(contextUri, trackUri);
         } else {
-          await playTrackByUri(trackUri);
+          const allUris = tracksRef.current.map(t => t.uri);
+          const startIdx = Math.max(0, allUris.indexOf(trackUri));
+          const window = allUris.slice(startIdx, startIdx + 100);
+          if (window.length > 1) {
+            await playUriList(window, trackUri);
+          } else {
+            await playTrackByUri(trackUri);
+          }
         }
 
         // Smart retry: poll Spotify until the playing track actually changes,
@@ -391,12 +496,16 @@ export function useTracklistPanel(
     panelView,
     isSupportedContext,
     savedTrackUris,
+    isLoadingMoreLiked,
+    likedHasMore,
     toggleOpen,
     close,
     selectTrack,
     showAlbum,
     showPlaylist,
     showQueue,
+    showLikedSongs,
+    loadMoreLikedSongs,
     goBack,
     addToQueue,
     saveTrack,

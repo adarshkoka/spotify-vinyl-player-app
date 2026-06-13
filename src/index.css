@@ -913,6 +913,15 @@
   overflow: visible;
   z-index: 10;
   pointer-events: none;
+  transition: height 0.3s ease, margin-top 0.3s ease;
+}
+
+.transition-area.transition-area-empty {
+  height: 0;
+  /* Keep the same gap-base-to-jacket spacing so the panel sits the same
+     distance below the turntable as the album art would. */
+  margin-top: var(--gap-base-to-jacket, 16px);
+  overflow: hidden;
 }
 
 /* Stage-specific animations for jacket */
