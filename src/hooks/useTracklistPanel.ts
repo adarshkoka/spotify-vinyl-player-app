@@ -37,6 +37,7 @@ export function useTracklistPanel(
   contextType: string | null,
   fallbackAlbum?: { id: string; uri: string } | null,
   currentTrackUri?: string | null,
+  refetchPlayback?: (options?: { untilTrackChanges?: boolean }) => Promise<void>,
 ): UseTracklistPanelReturn {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -56,6 +57,8 @@ export function useTracklistPanel(
 
   // Cache tracks per contextUri (not used for queue — always fresh)
   const cacheRef = useRef<Record<string, ContextTrack[]>>({});
+  const refetchPlaybackRef = useRef(refetchPlayback);
+  refetchPlaybackRef.current = refetchPlayback;
 
   const checkAndMergeSaved = useCallback(async (trackList: ContextTrack[]) => {
     if (trackList.length === 0) return;
@@ -325,6 +328,11 @@ export function useTracklistPanel(
           await playTrackByUri(trackUri);
         }
 
+        // Smart retry: poll Spotify until the playing track actually changes,
+        // so the album art / animations / colors update within ~300-700ms
+        // instead of waiting for the next 3000ms regular poll.
+        refetchPlaybackRef.current?.({ untilTrackChanges: true });
+
         // Don't refresh immediately — Spotify hasn't updated its queue state yet.
         // A single delayed refresh is enough; the current track row will stay
         // visible in the panel until the fresh data arrives.
@@ -341,6 +349,8 @@ export function useTracklistPanel(
     setSelectedTrackUri(trackUri);
     try {
       await playTrackInContext(activeContextUri, trackUri);
+      // Smart retry: poll Spotify until the playing track actually changes.
+      refetchPlaybackRef.current?.({ untilTrackChanges: true });
     } catch (err) {
       console.error('Failed to play track in context:', err);
     }

@@ -20,7 +20,7 @@ interface MainAppPageProps {
 }
 
 const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
-  const { track, isPlaying, isLoading, error, contextUri, contextType, progressMs, durationMs, togglePlayback, skipNext, skipBack } = useSpotifyPlayback({ pollInterval: SPOTIFY_POLL_INTERVAL });
+  const { track, isPlaying, isLoading, error, contextUri, contextType, progressMs, durationMs, togglePlayback, skipNext, skipBack, refetchPlayback } = useSpotifyPlayback({ pollInterval: SPOTIFY_POLL_INTERVAL });
   const { stage, jacketTrack, discTrack, skipToPlatter } = useTrackTransition(track, isPlaying);
   const [gradientColors, setGradientColors] = useState<ExtractedColors>(DEFAULT_COLORS);
   const { baseBackground, baseColor, baseMaterial, tonearmColor, tonearmMaterial, baseFavorites, tonearmFavorites, setBaseColor, setTonearmColor, applyMaterialPreset, addFavorite } = usePlayerColors();
@@ -40,7 +40,7 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
     if (target === 'base') setArtBaseEnabled(false);
     applyMaterialPreset(target, preset);
   };
-  const { isOpen: isTracklistOpen, isLoading: isTracklistLoading, tracks: tracklistTracks, selectedTrackUri, panelView, isSupportedContext, savedTrackUris, toggleOpen: toggleTracklist, close: closeTracklist, selectTrack, showAlbum, showPlaylist, showQueue, goBack, addToQueue, saveTrack } = useTracklistPanel(contextUri, contextType, track?.album ?? null, track?.uri);
+  const { isOpen: isTracklistOpen, isLoading: isTracklistLoading, tracks: tracklistTracks, selectedTrackUri, panelView, isSupportedContext, savedTrackUris, toggleOpen: toggleTracklist, close: closeTracklist, selectTrack, showAlbum, showPlaylist, showQueue, goBack, addToQueue, saveTrack } = useTracklistPanel(contextUri, contextType, track?.album ?? null, track?.uri, refetchPlayback);
 
   const handleToggleTracklist = () => {
     skipToPlatter();

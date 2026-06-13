@@ -14,6 +14,10 @@ interface UseSpotifyPlaybackOptions {
   onTrackChange?: (newTrack: SpotifyTrack | null, oldTrackId: string | null) => void;
 }
 
+export interface RefetchPlaybackOptions {
+  untilTrackChanges?: boolean;
+}
+
 interface UseSpotifyPlaybackReturn {
   track: SpotifyTrack | null;
   isPlaying: boolean;
@@ -26,7 +30,10 @@ interface UseSpotifyPlaybackReturn {
   togglePlayback: () => Promise<void>;
   skipNext: () => Promise<void>;
   skipBack: () => Promise<void>;
+  refetchPlayback: (options?: RefetchPlaybackOptions) => Promise<void>;
 }
+
+const RETRY_DELAYS_MS = [200, 300, 400, 500, 600, 800];
 
 export function useSpotifyPlayback(
   options: UseSpotifyPlaybackOptions = {}
@@ -40,6 +47,12 @@ export function useSpotifyPlayback(
   const previousTrackIdRef = useRef<string | null>(null);
   const onTrackChangeRef = useRef(onTrackChange);
   onTrackChangeRef.current = onTrackChange;
+  const retryTokenRef = useRef(0);
+  const playbackDataRef = useRef<CurrentlyPlayingResponse | null>(null);
+
+  // Mirror playbackData to a ref so retry loops always read the latest
+  // pre-change track id without re-creating the refetch callback.
+  useEffect(() => { playbackDataRef.current = playbackData; }, [playbackData]);
 
   const fetchPlayback = useCallback(async () => {
     try {
@@ -84,6 +97,46 @@ export function useSpotifyPlayback(
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [fetchPlayback]);
 
+  const refetchPlayback = useCallback(async (options: RefetchPlaybackOptions = {}): Promise<void> => {
+    const { untilTrackChanges } = options;
+    const token = ++retryTokenRef.current;
+    const preChangeTrackId = playbackDataRef.current?.item?.id ?? null;
+    const isStale = () => token !== retryTokenRef.current;
+
+    if (!untilTrackChanges) {
+      await fetchPlayback();
+      return;
+    }
+
+    for (const delay of RETRY_DELAYS_MS) {
+      await new Promise<void>(resolve => setTimeout(resolve, delay));
+      if (isStale()) return;
+      try {
+        const data = await getCurrentlyPlayingSong();
+        if (isStale()) return;
+        const newTrackId = data?.item?.id ?? null;
+        if (newTrackId !== preChangeTrackId) {
+          setPlaybackData(data);
+          setError(null);
+          if (newTrackId !== previousTrackIdRef.current) {
+            previousTrackIdRef.current = newTrackId;
+            onTrackChangeRef.current?.(data?.item ?? null, preChangeTrackId);
+          }
+          return;
+        }
+      } catch (err) {
+        if (isStale()) return;
+        console.warn('refetchPlayback retry failed:', err);
+      }
+    }
+    // All attempts exhausted — the regular 3000ms poll will catch up.
+  }, [fetchPlayback]);
+
+  // Cancel any in-flight retry loops on unmount.
+  useEffect(() => {
+    return () => { retryTokenRef.current++; };
+  }, []);
+
   const togglePlayback = useCallback(async () => {
     try {
       if (playbackData?.is_playing) {
@@ -103,20 +156,20 @@ export function useSpotifyPlayback(
   const skipNext = useCallback(async () => {
     try {
       await skipToNext();
-      setTimeout(fetchPlayback, 300);
+      await refetchPlayback({ untilTrackChanges: true });
     } catch (err) {
       console.error('Failed to skip to next:', err);
     }
-  }, [fetchPlayback]);
+  }, [refetchPlayback]);
 
   const skipBack = useCallback(async () => {
     try {
       await skipToPrevious();
-      setTimeout(fetchPlayback, 300);
+      await refetchPlayback({ untilTrackChanges: true });
     } catch (err) {
       console.error('Failed to skip to previous:', err);
     }
-  }, [fetchPlayback]);
+  }, [refetchPlayback]);
 
   return {
     track: playbackData?.item ?? null,
@@ -130,5 +183,6 @@ export function useSpotifyPlayback(
     togglePlayback,
     skipNext,
     skipBack,
+    refetchPlayback,
   };
 }
