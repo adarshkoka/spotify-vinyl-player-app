@@ -38,13 +38,13 @@ interface RecordPlayerProps {
   onCloseTracklist?: () => void;
   onSelectTrack?: (trackUri: string) => void;
   onShowAlbum?: () => void;
+  onShowLibrary?: () => void;
   onShowPlaylist?: () => void;
   onShowQueue?: () => void;
   onShowLikedSongs?: () => void;
   onLoadMoreLikedSongs?: () => void;
   isLoadingMoreLiked?: boolean;
   likedHasMore?: boolean;
-  onGoBack?: () => void;
   onAddToQueue?: (trackUri: string) => Promise<void>;
   tracklistAccentColor?: string;
   tracklistAvailable?: boolean;
@@ -93,13 +93,13 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
   onCloseTracklist,
   onSelectTrack,
   onShowAlbum,
+  onShowLibrary,
   onShowPlaylist,
   onShowQueue,
   onShowLikedSongs,
   onLoadMoreLikedSongs,
   isLoadingMoreLiked = false,
   likedHasMore = false,
-  onGoBack,
   onAddToQueue,
   tracklistAccentColor,
   tracklistAvailable = true,
@@ -209,13 +209,13 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
         onSelectTrack={onSelectTrack ?? (() => {})}
         onClose={onCloseTracklist ?? (() => {})}
         onShowAlbum={onShowAlbum}
+        onShowLibrary={onShowLibrary}
         onShowPlaylist={onShowPlaylist}
         onShowQueue={onShowQueue}
         onShowLikedSongs={onShowLikedSongs}
         onLoadMoreLikedSongs={onLoadMoreLikedSongs}
         isLoadingMoreLiked={isLoadingMoreLiked}
         likedHasMore={likedHasMore}
-        onGoBack={onGoBack}
         onAddToQueue={onAddToQueue}
         savedTrackUris={savedTrackUris}
         onSaveTrack={onSaveTrack}

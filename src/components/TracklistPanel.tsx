@@ -22,11 +22,11 @@ interface TracklistPanelProps {
   onSelectTrack: (trackUri: string) => void;
   onClose: () => void;
   onShowAlbum?: () => void;
+  onShowLibrary?: () => void;
   onShowPlaylist?: () => void;
   onShowQueue?: () => void;
   onShowLikedSongs?: () => void;
   onLoadMoreLikedSongs?: () => void;
-  onGoBack?: () => void;
   onAddToQueue?: (trackUri: string) => Promise<void>;
   savedTrackUris?: Set<string>;
   onSaveTrack?: (trackUri: string) => Promise<void>;
@@ -114,22 +114,20 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
   onSelectTrack,
   onClose,
   onShowAlbum,
+  onShowLibrary,
   onShowPlaylist,
   onShowQueue,
   onShowLikedSongs,
   onLoadMoreLikedSongs,
-  onGoBack,
   onAddToQueue,
   savedTrackUris,
   onSaveTrack,
 }) => {
-  const showTrackNumbers = panelView !== 'playlist';
-  const showAlbumBtn = isPlaylist && (!albumTrackCount || albumTrackCount > 1);
-  const panelTitle =
-    panelView === 'playlist' ? 'Playlist' :
-    panelView === 'album' ? 'Album' :
-    panelView === 'liked' ? 'Liked Songs' :
-    'Queue';
+  const showTrackNumbers = panelView !== 'playlist' && panelView !== 'library';
+  // Single-track albums don't warrant their own tab — same condition that used
+  // to gate the "← Album" button from the playlist view.
+  const showAlbumTab = !albumTrackCount || albumTrackCount > 1;
+  const showPlaylistTab = isPlaylist;
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -163,49 +161,62 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
   return (
     <div className={`tracklist-panel ${isOpen ? 'tracklist-panel-open' : ''}`}>
       <div className="tracklist-panel-inner">
-        {/* Header buttons */}
+        {/* Tab bar */}
         <div className="tracklist-header-btns">
-          {/* Left navigation button */}
-          <div className="tracklist-nav-left">
-            {panelView === 'playlist' && showAlbumBtn && (
-              <button className="tracklist-toggle-btn" onClick={onShowAlbum}>← Album</button>
+          <div className="tracklist-tabs">
+            {showAlbumTab && (
+              <button
+                className={`tracklist-tab ${panelView === 'album' ? 'tracklist-tab-active' : ''}`}
+                style={panelView === 'album' ? { color: accentColor, borderBottomColor: accentColor } : undefined}
+                onClick={onShowAlbum}
+              >
+                Album
+              </button>
             )}
-            {panelView === 'album' && isPlaylist && (
-              <button className="tracklist-toggle-btn" onClick={onShowPlaylist}>← Playlist</button>
+            <button
+              className={`tracklist-tab ${panelView === 'library' ? 'tracklist-tab-active' : ''}`}
+              style={panelView === 'library' ? { color: accentColor, borderBottomColor: accentColor } : undefined}
+              onClick={onShowLibrary}
+            >
+              Library
+            </button>
+            {showPlaylistTab && (
+              <button
+                className={`tracklist-tab ${panelView === 'playlist' ? 'tracklist-tab-active' : ''}`}
+                style={panelView === 'playlist' ? { color: accentColor, borderBottomColor: accentColor } : undefined}
+                onClick={() => onShowPlaylist?.()}
+              >
+                Playlist
+              </button>
             )}
-            {panelView === 'queue' && (
-              <button className="tracklist-toggle-btn" onClick={onGoBack}>← Back</button>
-            )}
-            {panelView === 'liked' && (
-              <button className="tracklist-toggle-btn" onClick={onGoBack}>← Back</button>
-            )}
-          </div>
-
-          {/* Centered panel title */}
-          <span className="tracklist-panel-title">{panelTitle}</span>
-
-          {/* Right: next panel + close */}
-          <div className="tracklist-nav-right">
-            {panelView === 'playlist' && (
-              <button className="tracklist-toggle-btn" onClick={onShowQueue}>Queue →</button>
-            )}
-            {panelView === 'album' && (
-              <button className="tracklist-toggle-btn" onClick={onShowQueue}>Queue →</button>
-            )}
-            {panelView === 'queue' && onShowLikedSongs && (
-              <button className="tracklist-toggle-btn" onClick={onShowLikedSongs}>Liked →</button>
-            )}
-            <button className="tracklist-close-btn" onClick={onClose} aria-label="Close tracklist">
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                <path d="M2 2L8 8M8 2L2 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
+            <button
+              className={`tracklist-tab ${panelView === 'queue' ? 'tracklist-tab-active' : ''}`}
+              style={panelView === 'queue' ? { color: accentColor, borderBottomColor: accentColor } : undefined}
+              onClick={onShowQueue}
+            >
+              Queue
+            </button>
+            <button
+              className={`tracklist-tab ${panelView === 'liked' ? 'tracklist-tab-active' : ''}`}
+              style={panelView === 'liked' ? { color: accentColor, borderBottomColor: accentColor } : undefined}
+              onClick={onShowLikedSongs}
+            >
+              Liked
             </button>
           </div>
+
+          <button className="tracklist-close-btn" onClick={onClose} aria-label="Close tracklist">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+              <path d="M2 2L8 8M8 2L2 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
         </div>
 
-        {/* Track list */}
+        {/* Track list (or Library placeholder) */}
         <div className="tracklist-scroll" ref={scrollRef}>
-          {isLoading ? (
+          {panelView === 'library' ? (
+            <div className="tracklist-library-placeholder">Your playlists</div>
+          ) : isLoading ? (
             Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="tracklist-skeleton-row">
                 <div className="tracklist-skeleton-title" />

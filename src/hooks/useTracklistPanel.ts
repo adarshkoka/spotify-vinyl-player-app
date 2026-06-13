@@ -15,7 +15,7 @@ import {
   type ContextTrack,
 } from '../services/spotifyService';
 
-export type PanelView = 'playlist' | 'album' | 'queue' | 'liked';
+export type PanelView = 'album' | 'library' | 'playlist' | 'queue' | 'liked';
 
 const LIKED_PAGE_SIZE = 50;
 
@@ -33,11 +33,11 @@ interface UseTracklistPanelReturn {
   close: () => void;
   selectTrack: (trackUri: string) => Promise<void>;
   showAlbum: (albumId: string, albumUri: string) => void;
-  showPlaylist: () => void;
+  showLibrary: () => void;
+  showPlaylist: (playlistUri?: string) => void;
   showQueue: () => void;
   showLikedSongs: () => Promise<void>;
   loadMoreLikedSongs: () => Promise<void>;
-  goBack: () => void;
   addToQueue: (trackUri: string) => Promise<void>;
   saveTrack: (trackUri: string) => Promise<void>;
 }
@@ -53,15 +53,14 @@ export function useTracklistPanel(
   const [isLoading, setIsLoading] = useState(false);
   const [tracks, setTracks] = useState<ContextTrack[]>([]);
   const [selectedTrackUri, setSelectedTrackUri] = useState<string | null>(null);
-  const [panelView, setPanelView] = useState<PanelView>('playlist');
+  const [panelView, setPanelView] = useState<PanelView>('album');
   const [savedTrackUris, setSavedTrackUris] = useState<Set<string>>(new Set());
   const [overrideUri, setOverrideUri] = useState<string | null>(null);
   const [overrideType, setOverrideType] = useState<string | null>(null);
   const [likedOffset, setLikedOffset] = useState(0);
   const [likedHasMore, setLikedHasMore] = useState(true);
   const [isLoadingMoreLiked, setIsLoadingMoreLiked] = useState(false);
-  const prevViewRef = useRef<PanelView>('playlist');
-  const panelViewRef = useRef<PanelView>('playlist');
+  const panelViewRef = useRef<PanelView>('album');
   const queueRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -201,7 +200,7 @@ export function useTracklistPanel(
       setOverrideUri(null);
       setOverrideType(null);
       // Don't yank the user out of views they explicitly navigated to.
-      if (panelView !== 'queue' && panelView !== 'liked') {
+      if (panelView !== 'queue' && panelView !== 'liked' && panelView !== 'library') {
         setPanelView(defaultView);
         if (isOpen && effectiveUri) {
           const type = isSupportedContext ? contextType! : 'album';
@@ -256,7 +255,6 @@ export function useTracklistPanel(
   }, [defaultView]);
 
   const showAlbum = useCallback((_albumId: string, albumUri: string) => {
-    prevViewRef.current = panelView;
     setPanelView('album');
     panelViewRef.current = 'album';
     setOverrideUri(albumUri);
@@ -269,12 +267,40 @@ export function useTracklistPanel(
     } else {
       fetchTracksFor(albumUri, 'album');
     }
-  }, [fetchTracksFor, panelView]);
+  }, [fetchTracksFor]);
 
-  const showPlaylist = useCallback(() => {
-    prevViewRef.current = panelView;
+  const showLibrary = useCallback(() => {
+    setPanelView('library');
+    panelViewRef.current = 'library';
+    setOverrideUri(null);
+    setOverrideType(null);
+    // Library content (user-owned playlists) is rendered separately from the
+    // tracklist body — no track fetch here.
+    setTracks([]);
+    setIsOpen(true);
+  }, []);
+
+  const showPlaylist = useCallback((playlistUri?: string) => {
     setPanelView('playlist');
     panelViewRef.current = 'playlist';
+
+    // Library → playlist navigation: caller passes a specific playlist URI to
+    // view. Stash it as an override so fetchTracks targets that playlist.
+    if (playlistUri) {
+      setOverrideUri(playlistUri);
+      setOverrideType('playlist');
+      if (!cacheRef.current[playlistUri]) {
+        setTracks([]);
+        setIsLoading(true);
+        fetchTracksFor(playlistUri, 'playlist').finally(() => setIsLoading(false));
+      } else {
+        fetchTracksFor(playlistUri, 'playlist');
+      }
+      setIsOpen(true);
+      return;
+    }
+
+    // No override: show currently-playing playlist.
     setOverrideUri(null);
     setOverrideType(null);
     if (contextUri && contextType === 'playlist') {
@@ -308,20 +334,18 @@ export function useTracklistPanel(
     // No valid source available: clear stale rows and close.
     setTracks([]);
     setIsOpen(false);
-  }, [contextUri, contextType, fallbackAlbum?.uri, fetchTracksFor, panelView]);
+  }, [contextUri, contextType, fallbackAlbum?.uri, fetchTracksFor]);
 
   const showQueue = useCallback(() => {
-    prevViewRef.current = panelView;
     setPanelView('queue');
     panelViewRef.current = 'queue';
     // Queue is never cached — always clear before fetching fresh
     setTracks([]);
     setIsLoading(true);
     fetchQueueTracks().finally(() => setIsLoading(false));
-  }, [panelView, fetchQueueTracks]);
+  }, [fetchQueueTracks]);
 
   const showLikedSongs = useCallback(async () => {
-    prevViewRef.current = panelView;
     setPanelView('liked');
     panelViewRef.current = 'liked';
     setOverrideUri(null);
@@ -333,7 +357,7 @@ export function useTracklistPanel(
     setIsOpen(true);
     await fetchLikedSongsPage(0, false);
     setIsLoading(false);
-  }, [panelView, fetchLikedSongsPage]);
+  }, [fetchLikedSongsPage]);
 
   const loadMoreLikedSongs = useCallback(async () => {
     if (panelViewRef.current !== 'liked') return;
@@ -342,32 +366,6 @@ export function useTracklistPanel(
     await fetchLikedSongsPage(likedOffset, true);
     setIsLoadingMoreLiked(false);
   }, [likedHasMore, isLoadingMoreLiked, likedOffset, fetchLikedSongsPage]);
-
-  const goBack = useCallback(() => {
-    // From Liked Songs → back to Queue (Queue is the only entry point to Liked).
-    if (panelViewRef.current === 'liked') {
-      showQueue();
-      return;
-    }
-    if (prevViewRef.current === 'album') {
-      const albumUri = (overrideType === 'album' ? overrideUri : null) ?? fallbackAlbum?.uri ?? null;
-      if (albumUri) {
-        setPanelView('album');
-        panelViewRef.current = 'album';
-        setOverrideUri(albumUri);
-        setOverrideType('album');
-        if (!cacheRef.current[albumUri]) {
-          setTracks([]);
-          setIsLoading(true);
-          fetchTracksFor(albumUri, 'album').finally(() => setIsLoading(false));
-        } else {
-          fetchTracksFor(albumUri, 'album');
-        }
-        return;
-      }
-    }
-    showPlaylist();
-  }, [overrideType, overrideUri, fallbackAlbum?.uri, fetchTracksFor, showPlaylist, showQueue]);
 
   const selectTrack = useCallback(async (trackUri: string) => {
     if (panelView === 'liked') {
@@ -502,11 +500,11 @@ export function useTracklistPanel(
     close,
     selectTrack,
     showAlbum,
+    showLibrary,
     showPlaylist,
     showQueue,
     showLikedSongs,
     loadMoreLikedSongs,
-    goBack,
     addToQueue,
     saveTrack,
   };

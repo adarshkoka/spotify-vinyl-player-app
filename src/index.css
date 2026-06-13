@@ -629,7 +629,7 @@
   flex-direction: column;
 }
 
-/* Header buttons row */
+/* Tab bar row */
 .tracklist-header-btns {
   display: flex;
   align-items: center;
@@ -639,49 +639,50 @@
   flex-shrink: 0;
 }
 
-.tracklist-nav-left {
+.tracklist-tabs {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   flex: 1;
-  justify-content: flex-start;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tracklist-tabs::-webkit-scrollbar {
+  display: none;
 }
 
-.tracklist-panel-title {
-  flex: 0 0 auto;
+.tracklist-tab {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.4);
   font-size: 9px;
   font-weight: 500;
   letter-spacing: 0.3px;
-  color: rgba(255, 255, 255, 0.3);
-  text-align: center;
+  padding: 3px 8px 4px;
+  border-bottom: 1.5px solid transparent;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  line-height: 1.4;
   white-space: nowrap;
 }
+.tracklist-tab:hover {
+  color: rgba(255, 255, 255, 0.8);
+}
+.tracklist-tab-active {
+  color: rgba(255, 255, 255, 0.95);
+  border-bottom-color: rgba(255, 255, 255, 0.7);
+}
 
-.tracklist-nav-right {
+/* Library view placeholder — temporary content until the playlist list lands. */
+.tracklist-library-placeholder {
   display: flex;
   align-items: center;
-  gap: 4px;
-  flex: 1;
-  justify-content: flex-end;
-}
-
-/* Album / Playlist toggle button */
-.tracklist-toggle-btn {
-  border: none;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.45);
-  font-size: 9px;
-  font-weight: 500;
+  justify-content: center;
+  height: 100%;
+  font-size: 10px;
   letter-spacing: 0.3px;
-  padding: 2px 8px;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: color 0.15s, background 0.15s;
-  line-height: 1.4;
-}
-.tracklist-toggle-btn:hover {
-  color: rgba(255, 255, 255, 0.8);
-  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.35);
 }
 
 /* Close button — subtle circle */
@@ -1005,12 +1006,15 @@
   justify-content: flex-start;
 }
 
-/* "Lyrics Position" toggle = right: anchor the album jacket to the left half
-   of the transition area, hide the left lyric panel, and stretch the right
-   lyric panel to cover everything to the right of the jacket. */
+/* "Lyrics Position" toggle = right: anchor the album jacket so its left edge
+   sits flush with the disc's left outer edge on the turntable above, hide the
+   left lyric panel, and stretch the right lyric panel to cover everything to
+   the right of the jacket.
+   144px ≈ disc radius: turntable-base max-width 360px − 2×24px padding = 312px
+   platter, × 92% disc-on-platter ≈ 287px disc → 143.5px radius. */
 .transition-area.transition-area-lyrics-right {
   justify-content: flex-start;
-  padding-left: 30px;
+  padding-left: calc(50% - 144px);
 }
 
 .transition-area-lyrics-right .lyric-panel--left {
@@ -1018,8 +1022,8 @@
 }
 
 .transition-area-lyrics-right .lyric-panel--right {
-  /* 30px left-padding + 140px jacket width + 10px gap */
-  left: 180px;
+  /* jacket-left (50% − 144px) + 140px jacket width + 10px gap = 50% + 6px */
+  left: calc(50% + 6px);
   right: 0;
 }
 
