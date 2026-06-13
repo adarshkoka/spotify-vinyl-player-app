@@ -159,6 +159,7 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
             panelView={panelView}
             isPlaylist={isSupportedContext && contextType === 'playlist'}
             albumTrackCount={track?.album?.total_tracks}
+            hasCurrentTrack={!!track}
             onToggleTracklist={handleToggleTracklist}
             onCloseTracklist={closeTracklist}
             onSelectTrack={selectTrack}

@@ -471,7 +471,12 @@ export function useTracklistPanel(
     if (!activeContextUri) return;
     setSelectedTrackUri(trackUri);
     try {
-      await playTrackInContext(activeContextUri, trackUri);
+      // Without an active Spotify session the play endpoint returns 404. This
+      // happens, for example, when the user picks a playlist from the Library
+      // before any device has started playing. Look up the most-recent device
+      // and target it explicitly — same fallback the Liked Songs path uses.
+      const device = await getRecentDevice();
+      await playTrackInContext(activeContextUri, trackUri, device?.id);
       // Smart retry: poll Spotify until the playing track actually changes.
       refetchPlaybackRef.current?.({ untilTrackChanges: true });
     } catch (err) {

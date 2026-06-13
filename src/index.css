@@ -631,9 +631,10 @@
 
 /* Tab bar row */
 .tracklist-header-btns {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 4px;
   padding: 5px 8px 2px;
   flex-shrink: 0;
@@ -642,9 +643,9 @@
 .tracklist-tabs {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 2px;
-  flex: 1;
-  min-width: 0;
+  max-width: 100%;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -753,8 +754,13 @@
   animation: tracklist-shimmer 1.4s ease-in-out infinite;
 }
 
-/* Close button — subtle circle */
+/* Close button — subtle circle, anchored to the top-right of the header so the
+   tab row can center within the panel without being shoved off-center by the
+   button's width. */
 .tracklist-close-btn {
+  position: absolute;
+  top: 5px;
+  right: 8px;
   width: 18px;
   height: 18px;
   border: none;

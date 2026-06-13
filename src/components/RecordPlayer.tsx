@@ -34,6 +34,7 @@ interface RecordPlayerProps {
   panelView?: PanelView;
   isPlaylist?: boolean;
   albumTrackCount?: number;
+  hasCurrentTrack?: boolean;
   onToggleTracklist?: () => void;
   onCloseTracklist?: () => void;
   onSelectTrack?: (trackUri: string) => void;
@@ -91,6 +92,7 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
   panelView = 'playlist',
   isPlaylist = false,
   albumTrackCount,
+  hasCurrentTrack = false,
   onToggleTracklist,
   onCloseTracklist,
   onSelectTrack,
@@ -210,6 +212,7 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
         panelView={panelView}
         isPlaylist={isPlaylist}
         albumTrackCount={albumTrackCount}
+        hasCurrentTrack={hasCurrentTrack}
         onSelectTrack={onSelectTrack ?? (() => {})}
         onClose={onCloseTracklist ?? (() => {})}
         onShowAlbum={onShowAlbum}

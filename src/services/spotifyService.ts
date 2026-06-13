@@ -271,8 +271,11 @@ export async function getPlaylistTracks(playlistId: string): Promise<ContextTrac
     });
 }
 
-export async function playTrackInContext(contextUri: string, trackUri: string): Promise<void> {
-  await spotifyApiCall<void>('me/player/play', {
+export async function playTrackInContext(contextUri: string, trackUri: string, deviceId?: string): Promise<void> {
+  const path = deviceId
+    ? `me/player/play?device_id=${encodeURIComponent(deviceId)}`
+    : 'me/player/play';
+  await spotifyApiCall<void>(path, {
     method: 'PUT',
     body: { context_uri: contextUri, offset: { uri: trackUri } },
   });

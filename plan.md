@@ -108,3 +108,51 @@ State-Driven Transitions: Transition triggers must be tied to Spotify’s track_
 - Seek calls throttled to avoid Spotify API rate limits
 
 ----------------------------
+
+## Phase 4C: Synced Lyrics Overlay
+
+- Time-synced lyrics fetched from LRCLIB (`useLyrics`) and parsed from LRC format (`src/utils/lrcParser.ts`); per-track in-memory cache avoids refetching on revisit
+- `LyricsDisplay` component renders the active line with a smooth crossfade as playback progresses
+- Two layout positions persisted via `useLyricsSettings`:
+  - **Flank** (default): lyric panels sit on both sides of the centered album jacket
+  - **Right**: jacket left-anchored so its left edge aligns with the disc's left outer edge above; the right lyric panel fills the rest of the row
+- Settings persisted to localStorage and surfaced inside the consolidated gear-icon settings menu
+
+----------------------------
+
+## Phase 4D: Liked Songs Panel & Cold-Start Playback
+
+- New "Liked Songs" panel view fetches saved tracks (`me/tracks`) with 50-at-a-time infinite-scroll paging
+- Per-row heart button to save tracks to the user's library (`me/tracks` PUT); state is checked on load and updates optimistically
+- When the app loads and no song is currently playing on the user's Spotify account, the panel auto-opens to Liked Songs so the user can start playback without leaving the app
+- Picking a Liked song looks up the user's most-recently-used device via `me/player` (with `me/player/devices` fallback) and targets it explicitly to avoid 404s caused by no active session
+- Shuffle is enabled when starting Liked Songs playback so the loaded window doesn't loop the single clicked track
+- The same device-fallback path is applied to album/playlist track-picks, so picking a song from a Library-selected playlist works on cold start
+
+----------------------------
+
+## Phase 4E: Album-Art-Driven Base & Color Refinements
+
+- `useArtBaseSettings` toggle: when enabled, the turntable base background is replaced with `busyGradient` (a less-darkened multi-stop gradient derived from album-art k-means clusters) and `baseColor` falls back to `busyDominant`
+- Manually picking a base color or material preset auto-disables ART mode so the user's explicit choice wins
+- Color extraction now also exposes `vibrantAccent`, used to tint the currently-playing track row and the active tab underline; `pickTracklistAccentColor` chooses between base color, tonearm color, and the extracted accent for the best contrast against the panel background
+- Per-target favorite color swatches persisted with each color/material setting
+- Lyrics, ART, color, and logout controls consolidated into a single gear-icon menu in the bottom bar
+
+----------------------------
+
+## Phase 5: Library Panel & Tab-Based Panel Navigation
+
+- Panel header restructured from sequential `← Back` / `Next →` directional buttons into a centered persistent tab bar:
+  Library · Album · Playlist · Liked Songs · Queue
+- Close button absolutely positioned in the top-right so the tab row stays centered in the panel window
+- Tabs are conditionally hidden when they would be empty:
+  - Album tab requires a current track with a multi-track album
+  - Playlist tab requires a playlist playback context
+  - Queue tab requires a current track
+- New **Library** panel: 3-column grid of cards showing the user's *owned* playlists (`me/playlists` filtered by `owner.id === me.id`, with paged fetch up to 200 playlists). Each card is a square cover + clamped 2-line name; cards fetched once per session and cached in a ref
+- Clicking a playlist in Library opens it in the Playlist tab as a temporary override; switching tabs clears the override so the Playlist tab reverts to the currently-playing playlist
+- Jacket-click open behavior preserved: opens Playlist tab when playing from a playlist, otherwise Album tab
+- `goBack` and its associated `prevViewRef` logic removed — direct tab clicks replace it
+
+----------------------------

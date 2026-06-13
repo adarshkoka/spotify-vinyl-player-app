@@ -17,6 +17,7 @@ interface TracklistPanelProps {
   panelView: PanelView;
   isPlaylist: boolean;
   albumTrackCount?: number;
+  hasCurrentTrack?: boolean;
   isLoadingMoreLiked?: boolean;
   likedHasMore?: boolean;
   libraryPlaylists?: UserPlaylist[];
@@ -111,6 +112,7 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
   panelView,
   isPlaylist,
   albumTrackCount,
+  hasCurrentTrack = false,
   isLoadingMoreLiked = false,
   likedHasMore = false,
   libraryPlaylists = [],
@@ -128,10 +130,12 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
   onSaveTrack,
 }) => {
   const showTrackNumbers = panelView !== 'playlist' && panelView !== 'library';
-  // Single-track albums don't warrant their own tab — same condition that used
-  // to gate the "← Album" button from the playlist view.
-  const showAlbumTab = !albumTrackCount || albumTrackCount > 1;
+  // Album tab needs a real, multi-track album to be useful. When nothing is
+  // playing (no current track), there's no album to show, so hide the tab.
+  const showAlbumTab = hasCurrentTrack && (albumTrackCount ?? 0) > 1;
   const showPlaylistTab = isPlaylist;
+  // Queue is meaningless when nothing is playing.
+  const showQueueTab = hasCurrentTrack;
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -168,6 +172,13 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
         {/* Tab bar */}
         <div className="tracklist-header-btns">
           <div className="tracklist-tabs">
+            <button
+              className={`tracklist-tab ${panelView === 'library' ? 'tracklist-tab-active' : ''}`}
+              style={panelView === 'library' ? { color: accentColor, borderBottomColor: accentColor } : undefined}
+              onClick={onShowLibrary}
+            >
+              Library
+            </button>
             {showAlbumTab && (
               <button
                 className={`tracklist-tab ${panelView === 'album' ? 'tracklist-tab-active' : ''}`}
@@ -177,13 +188,6 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
                 Album
               </button>
             )}
-            <button
-              className={`tracklist-tab ${panelView === 'library' ? 'tracklist-tab-active' : ''}`}
-              style={panelView === 'library' ? { color: accentColor, borderBottomColor: accentColor } : undefined}
-              onClick={onShowLibrary}
-            >
-              Library
-            </button>
             {showPlaylistTab && (
               <button
                 className={`tracklist-tab ${panelView === 'playlist' ? 'tracklist-tab-active' : ''}`}
@@ -194,19 +198,21 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
               </button>
             )}
             <button
-              className={`tracklist-tab ${panelView === 'queue' ? 'tracklist-tab-active' : ''}`}
-              style={panelView === 'queue' ? { color: accentColor, borderBottomColor: accentColor } : undefined}
-              onClick={onShowQueue}
-            >
-              Queue
-            </button>
-            <button
               className={`tracklist-tab ${panelView === 'liked' ? 'tracklist-tab-active' : ''}`}
               style={panelView === 'liked' ? { color: accentColor, borderBottomColor: accentColor } : undefined}
               onClick={onShowLikedSongs}
             >
-              Liked
+              Liked Songs
             </button>
+            {showQueueTab && (
+              <button
+                className={`tracklist-tab ${panelView === 'queue' ? 'tracklist-tab-active' : ''}`}
+                style={panelView === 'queue' ? { color: accentColor, borderBottomColor: accentColor } : undefined}
+                onClick={onShowQueue}
+              >
+                Queue
+              </button>
+            )}
           </div>
 
           <button className="tracklist-close-btn" onClick={onClose} aria-label="Close tracklist">
