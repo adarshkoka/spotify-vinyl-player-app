@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import type { ContextTrack } from '../services/spotifyService';
+import type { ContextTrack, UserPlaylist } from '../services/spotifyService';
 import type { PanelView } from '../hooks/useTracklistPanel';
 
 function formatDuration(ms: number): string {
@@ -19,11 +19,13 @@ interface TracklistPanelProps {
   albumTrackCount?: number;
   isLoadingMoreLiked?: boolean;
   likedHasMore?: boolean;
+  libraryPlaylists?: UserPlaylist[];
+  isLoadingLibrary?: boolean;
   onSelectTrack: (trackUri: string) => void;
   onClose: () => void;
   onShowAlbum?: () => void;
   onShowLibrary?: () => void;
-  onShowPlaylist?: () => void;
+  onShowPlaylist?: (playlistUri?: string) => void;
   onShowQueue?: () => void;
   onShowLikedSongs?: () => void;
   onLoadMoreLikedSongs?: () => void;
@@ -111,6 +113,8 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
   albumTrackCount,
   isLoadingMoreLiked = false,
   likedHasMore = false,
+  libraryPlaylists = [],
+  isLoadingLibrary = false,
   onSelectTrack,
   onClose,
   onShowAlbum,
@@ -212,10 +216,38 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
           </button>
         </div>
 
-        {/* Track list (or Library placeholder) */}
+        {/* Track list (or Library grid) */}
         <div className="tracklist-scroll" ref={scrollRef}>
           {panelView === 'library' ? (
-            <div className="tracklist-library-placeholder">Your playlists</div>
+            isLoadingLibrary ? (
+              <div className="library-grid">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="library-card library-card-skeleton">
+                    <div className="library-card-cover" />
+                    <div className="library-card-name-skeleton" />
+                  </div>
+                ))}
+              </div>
+            ) : libraryPlaylists.length === 0 ? (
+              <div className="tracklist-library-placeholder">No playlists yet</div>
+            ) : (
+              <div className="library-grid">
+                {libraryPlaylists.map(p => (
+                  <button
+                    key={p.id}
+                    className="library-card"
+                    onClick={() => onShowPlaylist?.(p.uri)}
+                    title={p.name}
+                  >
+                    <div
+                      className="library-card-cover"
+                      style={p.imageUrl ? { backgroundImage: `url(${p.imageUrl})` } : undefined}
+                    />
+                    <span className="library-card-name">{p.name}</span>
+                  </button>
+                ))}
+              </div>
+            )
           ) : isLoading ? (
             Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="tracklist-skeleton-row">

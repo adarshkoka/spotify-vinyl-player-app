@@ -4,7 +4,7 @@ import AlbumJacket from './AlbumJacket';
 import TracklistPanel from './TracklistPanel';
 import Tonearm from './Tonearm';
 import type { TransitionStage } from '../types/player';
-import type { SpotifyTrack, ContextTrack } from '../services/spotifyService';
+import type { SpotifyTrack, ContextTrack, UserPlaylist } from '../services/spotifyService';
 import type { MaterialPreset } from '../hooks/usePlayerColors';
 import type { PanelView } from '../hooks/useTracklistPanel';
 import type { ScrubDirection, LedSkip } from '../hooks/useDiscScrub';
@@ -39,12 +39,14 @@ interface RecordPlayerProps {
   onSelectTrack?: (trackUri: string) => void;
   onShowAlbum?: () => void;
   onShowLibrary?: () => void;
-  onShowPlaylist?: () => void;
+  onShowPlaylist?: (playlistUri?: string) => void;
   onShowQueue?: () => void;
   onShowLikedSongs?: () => void;
   onLoadMoreLikedSongs?: () => void;
   isLoadingMoreLiked?: boolean;
   likedHasMore?: boolean;
+  libraryPlaylists?: UserPlaylist[];
+  isLoadingLibrary?: boolean;
   onAddToQueue?: (trackUri: string) => Promise<void>;
   tracklistAccentColor?: string;
   tracklistAvailable?: boolean;
@@ -100,6 +102,8 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
   onLoadMoreLikedSongs,
   isLoadingMoreLiked = false,
   likedHasMore = false,
+  libraryPlaylists,
+  isLoadingLibrary = false,
   onAddToQueue,
   tracklistAccentColor,
   tracklistAvailable = true,
@@ -216,6 +220,8 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
         onLoadMoreLikedSongs={onLoadMoreLikedSongs}
         isLoadingMoreLiked={isLoadingMoreLiked}
         likedHasMore={likedHasMore}
+        libraryPlaylists={libraryPlaylists}
+        isLoadingLibrary={isLoadingLibrary}
         onAddToQueue={onAddToQueue}
         savedTrackUris={savedTrackUris}
         onSaveTrack={onSaveTrack}

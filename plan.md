@@ -108,7 +108,3 @@ State-Driven Transitions: Transition triggers must be tied to Spotify’s track_
 - Seek calls throttled to avoid Spotify API rate limits
 
 ----------------------------
-
-# Possible Changes
-
-- Combine the settings into one Gear Symbol button with low opacity, that is positioned at the bottom right. This settings button combines the settings into one, and contains the Base Color, Tonearm color, Logout button, and the enable/disable LEDs radio button. Add setting for Enable/disable LEDs radio button, add this radio button to allow the user to disable the LEDs at the bottom of the record player. 

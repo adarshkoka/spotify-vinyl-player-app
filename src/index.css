@@ -674,7 +674,7 @@
   border-bottom-color: rgba(255, 255, 255, 0.7);
 }
 
-/* Library view placeholder — temporary content until the playlist list lands. */
+/* Library view — empty / error state */
 .tracklist-library-placeholder {
   display: flex;
   align-items: center;
@@ -683,6 +683,74 @@
   font-size: 10px;
   letter-spacing: 0.3px;
   color: rgba(255, 255, 255, 0.35);
+}
+
+/* Library view — 3-column grid of playlist cards (cover + name).
+   The cover is forced square via aspect-ratio so cards line up cleanly
+   regardless of how Spotify sized the source image. */
+.library-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 2px 2px 4px;
+}
+
+.library-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.85);
+  transition: transform 0.12s ease;
+}
+.library-card:hover {
+  transform: translateY(-1px);
+}
+.library-card:hover .library-card-cover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+}
+
+.library-card-cover {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.06);
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  transition: box-shadow 0.15s ease;
+}
+
+.library-card-name {
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  line-height: 1.25;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.75);
+  /* Clamp to two lines so long names don't push card heights out of sync. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.library-card-skeleton {
+  pointer-events: none;
+}
+.library-card-skeleton .library-card-cover {
+  animation: tracklist-shimmer 1.4s ease-in-out infinite;
+}
+.library-card-name-skeleton {
+  height: 9px;
+  margin: 0 8px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  animation: tracklist-shimmer 1.4s ease-in-out infinite;
 }
 
 /* Close button — subtle circle */

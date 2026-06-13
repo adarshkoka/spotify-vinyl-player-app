@@ -5,6 +5,7 @@ import {
   getQueue,
   getLikedSongs,
   getRecentDevice,
+  getUserPlaylists,
   playTrackInContext,
   playTrackByUri,
   playUriList,
@@ -13,6 +14,7 @@ import {
   checkSavedTracks,
   saveTracksToLibrary,
   type ContextTrack,
+  type UserPlaylist,
 } from '../services/spotifyService';
 
 export type PanelView = 'album' | 'library' | 'playlist' | 'queue' | 'liked';
@@ -29,6 +31,8 @@ interface UseTracklistPanelReturn {
   savedTrackUris: Set<string>;
   isLoadingMoreLiked: boolean;
   likedHasMore: boolean;
+  libraryPlaylists: UserPlaylist[];
+  isLoadingLibrary: boolean;
   toggleOpen: () => void;
   close: () => void;
   selectTrack: (trackUri: string) => Promise<void>;
@@ -60,6 +64,9 @@ export function useTracklistPanel(
   const [likedOffset, setLikedOffset] = useState(0);
   const [likedHasMore, setLikedHasMore] = useState(true);
   const [isLoadingMoreLiked, setIsLoadingMoreLiked] = useState(false);
+  const [libraryPlaylists, setLibraryPlaylists] = useState<UserPlaylist[]>([]);
+  const [isLoadingLibrary, setIsLoadingLibrary] = useState(false);
+  const libraryFetchedRef = useRef(false);
   const panelViewRef = useRef<PanelView>('album');
   const queueRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -278,6 +285,19 @@ export function useTracklistPanel(
     // tracklist body — no track fetch here.
     setTracks([]);
     setIsOpen(true);
+    // Fetch the user's owned playlists on first open; subsequent opens reuse
+    // the cached list so the grid renders instantly.
+    if (!libraryFetchedRef.current) {
+      libraryFetchedRef.current = true;
+      setIsLoadingLibrary(true);
+      getUserPlaylists()
+        .then(setLibraryPlaylists)
+        .catch(err => {
+          console.error('Failed to fetch user playlists:', err);
+          libraryFetchedRef.current = false;
+        })
+        .finally(() => setIsLoadingLibrary(false));
+    }
   }, []);
 
   const showPlaylist = useCallback((playlistUri?: string) => {
@@ -496,6 +516,8 @@ export function useTracklistPanel(
     savedTrackUris,
     isLoadingMoreLiked,
     likedHasMore,
+    libraryPlaylists,
+    isLoadingLibrary,
     toggleOpen,
     close,
     selectTrack,

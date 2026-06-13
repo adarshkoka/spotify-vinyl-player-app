@@ -455,3 +455,64 @@ export async function saveTracksToLibrary(trackIds: string[]): Promise<void> {
     body: { ids: trackIds.slice(0, 50) },
   });
 }
+
+export interface UserPlaylist {
+  id: string;
+  uri: string;
+  name: string;
+  imageUrl: string | null;
+}
+
+interface SpotifyMeResponse {
+  id: string;
+}
+
+interface SpotifyUserPlaylistsResponse {
+  items: Array<{
+    id: string;
+    uri: string;
+    name: string;
+    images: Array<{ url: string }> | null;
+    owner: { id: string };
+  }>;
+  next: string | null;
+}
+
+let cachedUserId: string | null = null;
+
+async function getCurrentUserId(): Promise<string> {
+  if (cachedUserId) return cachedUserId;
+  const data = await spotifyApiCall<SpotifyMeResponse>('me');
+  cachedUserId = data.id;
+  return data.id;
+}
+
+/**
+ * Fetch playlists owned by the current user. Spotify's `me/playlists` returns
+ * both owned and followed playlists; we filter by owner id. Paginates up to a
+ * hard cap so users following hundreds of playlists don't trigger a long burst
+ * of API calls.
+ */
+export async function getUserPlaylists(): Promise<UserPlaylist[]> {
+  const userId = await getCurrentUserId();
+  const result: UserPlaylist[] = [];
+  let path: string | null = 'me/playlists?limit=50';
+  let pagesFetched = 0;
+  const MAX_PAGES = 4;
+  while (path && pagesFetched < MAX_PAGES) {
+    const data: SpotifyUserPlaylistsResponse = await spotifyApiCall<SpotifyUserPlaylistsResponse>(path);
+    for (const p of data.items) {
+      if (p.owner.id === userId) {
+        result.push({
+          id: p.id,
+          uri: p.uri,
+          name: p.name,
+          imageUrl: p.images?.[0]?.url ?? null,
+        });
+      }
+    }
+    pagesFetched++;
+    path = data.next ? data.next.replace(`${SPOTIFY_API_BASE_URL}/`, '') : null;
+  }
+  return result;
+}
