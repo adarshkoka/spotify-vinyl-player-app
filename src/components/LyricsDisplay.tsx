@@ -5,9 +5,10 @@ interface LyricsDisplayProps {
   lines: LyricLine[];
   progressMs: number;
   isPlaying: boolean;
+  position?: 'flank' | 'right';
 }
 
-const LyricsDisplay: React.FC<LyricsDisplayProps> = ({ lines, progressMs, isPlaying }) => {
+const LyricsDisplay: React.FC<LyricsDisplayProps> = ({ lines, progressMs, isPlaying, position = 'flank' }) => {
   const [currentText, setCurrentText] = useState<string>('');
   const pollRef = useRef({ progressMs, wallMs: performance.now() });
 
@@ -40,12 +41,17 @@ const LyricsDisplay: React.FC<LyricsDisplayProps> = ({ lines, progressMs, isPlay
     return () => cancelAnimationFrame(rafId);
   }, [lines, isPlaying]);
 
-  const { left, right } = splitLineHalves(currentText);
+  // In 'flank' mode the line splits around the centered album art (left half +
+  // right half). In 'right' mode the album art is anchored to the left of the
+  // row and the FULL line renders in the right-hand panel.
+  const halves = splitLineHalves(currentText);
+  const left = position === 'right' ? '' : halves.left;
+  const right = position === 'right' ? currentText : halves.right;
   const visible = currentText.length > 0;
 
   return (
     <>
-      <div className="lyric-panel lyric-panel--left" data-visible={visible} aria-hidden={!visible}>
+      <div className="lyric-panel lyric-panel--left" data-visible={visible && position === 'flank'} aria-hidden={!visible || position === 'right'}>
         {left}
       </div>
       <div className="lyric-panel lyric-panel--right" data-visible={visible} aria-hidden={!visible}>

@@ -1005,6 +1005,24 @@
   justify-content: flex-start;
 }
 
+/* "Lyrics Position" toggle = right: anchor the album jacket to the left half
+   of the transition area, hide the left lyric panel, and stretch the right
+   lyric panel to cover everything to the right of the jacket. */
+.transition-area.transition-area-lyrics-right {
+  justify-content: flex-start;
+  padding-left: 30px;
+}
+
+.transition-area-lyrics-right .lyric-panel--left {
+  display: none;
+}
+
+.transition-area-lyrics-right .lyric-panel--right {
+  /* 30px left-padding + 140px jacket width + 10px gap */
+  left: 180px;
+  right: 0;
+}
+
 /* Stage-specific animations for disc during transition */
 .disc-transitioning.stage-disc-emerge {
   position: absolute;

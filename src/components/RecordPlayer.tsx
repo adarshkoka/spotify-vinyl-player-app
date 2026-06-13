@@ -24,6 +24,7 @@ interface RecordPlayerProps {
   scrubAngle?: number;
   scrubDirection?: ScrubDirection;
   ledSkip?: LedSkip;
+  ledPause?: boolean;
   onDiscPointerDown?: (e: React.PointerEvent<HTMLDivElement>) => void;
   // Tracklist panel props
   isTracklistOpen?: boolean;
@@ -50,6 +51,7 @@ interface RecordPlayerProps {
   savedTrackUris?: Set<string>;
   onSaveTrack?: (trackUri: string) => Promise<void>;
   lyricsOverlay?: React.ReactNode;
+  lyricsPosition?: 'flank' | 'right';
 }
 
 function getAlbumArtUrl(track: SpotifyTrack | null): string | null {
@@ -78,6 +80,7 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
   scrubAngle = 0,
   scrubDirection = 'none',
   ledSkip = 'none',
+  ledPause = false,
   onDiscPointerDown,
   isTracklistOpen = false,
   isTracklistLoading = false,
@@ -103,6 +106,7 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
   savedTrackUris,
   onSaveTrack,
   lyricsOverlay,
+  lyricsPosition = 'flank',
 }) => {
   const discArt = getAlbumArtUrl(discTrack);
   const jacketArt = getAlbumArtUrl(jacketTrack);
@@ -157,6 +161,9 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
           <span className={`transport-led ${scrubDirection === 'backward' ? 'led-active' : ''}`}>
             <svg viewBox="0 0 12 8" fill="currentColor"><polygon points="6,0 0,4 6,8"/><polygon points="12,0 6,4 12,8"/></svg>
           </span>
+          <span className={`transport-led ${ledPause ? 'led-active' : ''}`}>
+            <svg viewBox="0 0 10 8" fill="currentColor"><rect x="1.5" y="0" width="2.5" height="8"/><rect x="6" y="0" width="2.5" height="8"/></svg>
+          </span>
           <span className={`transport-led ${scrubDirection === 'forward' ? 'led-active' : ''}`}>
             <svg viewBox="0 0 12 8" fill="currentColor"><polygon points="0,0 6,4 0,8"/><polygon points="6,0 12,4 6,8"/></svg>
           </span>
@@ -167,7 +174,7 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
       </div>
 
       {/* Jacket + transitioning disc area */}
-      <div className={`transition-area ${transitionStage === 'empty' ? 'transition-area-empty' : ''}`}>
+      <div className={`transition-area ${transitionStage === 'empty' ? 'transition-area-empty' : ''} ${lyricsPosition === 'right' ? 'transition-area-lyrics-right' : ''}`}>
         {lyricsOverlay}
         {showJacket && (
           <AlbumJacket

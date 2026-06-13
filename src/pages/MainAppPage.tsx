@@ -3,7 +3,7 @@ import { useSpotifyPlayback } from '../hooks/useSpotifyPlayback';
 import { useTrackTransition } from '../hooks/useTrackTransition';
 import { usePlayerColors } from '../hooks/usePlayerColors';
 import { useTracklistPanel } from '../hooks/useTracklistPanel';
-import { useDiscScrub } from '../hooks/useDiscScrub';
+import { useDiscScrub, type LedSkip } from '../hooks/useDiscScrub';
 import { useLyrics } from '../hooks/useLyrics';
 import { useLyricsSettings } from '../hooks/useLyricsSettings';
 import { useArtBaseSettings } from '../hooks/useArtBaseSettings';
@@ -24,7 +24,7 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
   const { stage, jacketTrack, discTrack, skipToPlatter } = useTrackTransition(track, isPlaying);
   const [gradientColors, setGradientColors] = useState<ExtractedColors>(DEFAULT_COLORS);
   const { baseBackground, baseColor, baseMaterial, tonearmColor, tonearmMaterial, baseFavorites, tonearmFavorites, setBaseColor, setTonearmColor, applyMaterialPreset, addFavorite } = usePlayerColors();
-  const { enabled: lyricsEnabled, setEnabled: setLyricsEnabled } = useLyricsSettings();
+  const { enabled: lyricsEnabled, position: lyricsPosition, setEnabled: setLyricsEnabled, setPosition: setLyricsPosition } = useLyricsSettings();
   const { lines: lyricLines } = useLyrics(track, lyricsEnabled);
   const { enabled: artBaseEnabled, setEnabled: setArtBaseEnabled } = useArtBaseSettings();
 
@@ -56,6 +56,27 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
     onSkipNext: skipNext,
     onSkipBack: skipBack,
   });
+
+  // Briefly flash the skip-prev / skip-next LED when the user clicks the
+  // player-control buttons (the disc-scrub gesture already flashes its own LED).
+  const [controlsLedSkip, setControlsLedSkip] = useState<LedSkip>('none');
+  const controlsLedBlinkRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flashControlsLedSkip = (direction: 'skip-next' | 'skip-prev') => {
+    setControlsLedSkip(direction);
+    if (controlsLedBlinkRef.current) clearTimeout(controlsLedBlinkRef.current);
+    controlsLedBlinkRef.current = setTimeout(() => setControlsLedSkip('none'), 400);
+  };
+  useEffect(() => () => {
+    if (controlsLedBlinkRef.current) clearTimeout(controlsLedBlinkRef.current);
+  }, []);
+  const handleSkipNextControls = () => { flashControlsLedSkip('skip-next'); skipNext(); };
+  const handleSkipBackControls = () => { flashControlsLedSkip('skip-prev'); skipBack(); };
+
+  // Combine the disc-scrub LED with the controls LED — either source can light
+  // the same physical light on the player.
+  const effectiveLedSkip: LedSkip = ledSkip !== 'none' ? ledSkip : controlsLedSkip;
+  // Pause LED stays on as long as the player is in the paused steady-state.
+  const ledPause = stage === 'paused';
 
   const tracklistAccentColor = pickTracklistAccentColor(baseColor, tonearmColor, gradientColors.vibrantAccent);
   const tracklistAvailable = contextType === 'playlist' || (track?.album?.total_tracks ?? 0) > 1;
@@ -93,6 +114,7 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
           baseFavorites={baseFavorites}
           tonearmFavorites={tonearmFavorites}
           lyricsEnabled={lyricsEnabled}
+          lyricsPosition={lyricsPosition}
           artBaseEnabled={artBaseEnabled}
           artBaseGradient={gradientColors.busyGradient}
           onSetBaseColor={handleSetBaseColor}
@@ -100,6 +122,7 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
           onApplyMaterialPreset={handleApplyMaterialPreset}
           onAddFavorite={addFavorite}
           onSetLyricsEnabled={setLyricsEnabled}
+          onSetLyricsPosition={setLyricsPosition}
           onSetArtBaseEnabled={setArtBaseEnabled}
           onLogout={onLogout}
         />
@@ -127,7 +150,8 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
             scrubAngle={scrubAngle}
             onDiscPointerDown={scrubHandlers.onPointerDown}
             scrubDirection={scrubDirection}
-            ledSkip={ledSkip}
+            ledSkip={effectiveLedSkip}
+            ledPause={ledPause}
             isTracklistOpen={isTracklistOpen}
             isTracklistLoading={isTracklistLoading}
             tracklistTracks={tracklistTracks}
@@ -151,11 +175,13 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
             onSaveTrack={saveTrack}
             tracklistAvailable={tracklistAvailable}
             tracklistAccentColor={tracklistAccentColor}
+            lyricsPosition={lyricsPosition}
             lyricsOverlay={
               <LyricsDisplay
                 lines={lyricLines}
                 progressMs={progressMs}
                 isPlaying={isPlaying}
+                position={lyricsPosition}
               />
             }
           />
@@ -198,8 +224,8 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
             <PlayerControls
               isPlaying={isPlaying}
               onTogglePlayback={togglePlayback}
-              onSkipNext={skipNext}
-              onSkipBack={skipBack}
+              onSkipNext={handleSkipNextControls}
+              onSkipBack={handleSkipBackControls}
             />
           </div>
         )}

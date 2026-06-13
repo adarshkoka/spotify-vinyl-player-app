@@ -2,12 +2,16 @@ import { useCallback, useState } from 'react';
 
 const STORAGE_KEY = 'spotify-vinyl-player-lyrics';
 
+export type LyricsPosition = 'flank' | 'right';
+
 interface StoredLyricsSettings {
   enabled: boolean;
+  position: LyricsPosition;
 }
 
 const DEFAULTS: StoredLyricsSettings = {
   enabled: false,
+  position: 'flank',
 };
 
 function load(): StoredLyricsSettings {
@@ -39,8 +43,18 @@ export function useLyricsSettings() {
     });
   }, []);
 
+  const setPosition = useCallback((position: LyricsPosition) => {
+    setState(prev => {
+      const next: StoredLyricsSettings = { ...prev, position };
+      save(next);
+      return next;
+    });
+  }, []);
+
   return {
     enabled: state.enabled,
+    position: state.position,
     setEnabled,
+    setPosition,
   };
 }
