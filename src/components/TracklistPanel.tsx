@@ -151,6 +151,18 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
     }
   }, [isOpen, isLoading, tracks, currentTrackUri, panelView]);
 
+  // Reset the panel's scroll position to the top whenever the user enters the
+  // Liked Songs view. The scroll container is shared across panel tabs, so
+  // without this the previous tab's scroll offset is preserved — and when the
+  // new (much shorter) Liked content renders, the browser clamps scrollTop
+  // and fires a scroll event near the bottom, triggering a phantom load-more
+  // that races the initial fetch and duplicates the first page.
+  useEffect(() => {
+    if (panelView === 'liked' && scrollRef.current) {
+      scrollRef.current.scrollTop = 0;
+    }
+  }, [panelView]);
+
   // Infinite scroll: load the next page of Liked Songs when the user nears the bottom.
   useEffect(() => {
     if (panelView !== 'liked' || !onLoadMoreLikedSongs) return;

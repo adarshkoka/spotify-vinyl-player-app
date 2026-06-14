@@ -55,13 +55,19 @@ export function useTracklistPanel(
 ): UseTracklistPanelReturn {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  // Track lists are split by surface so async writes from one view cannot
+  // bleed into another. Previously a single `tracks` state was shared across
+  // every panel view — an in-flight Liked Songs page fetch could resolve and
+  // append onto whatever the album/playlist/queue view had just loaded,
+  // producing the "50 liked songs prepended to the album" leak. `tracks`
+  // backs album/playlist/queue; `likedTracks` backs Liked Songs only.
   const [tracks, setTracks] = useState<ContextTrack[]>([]);
+  const [likedTracks, setLikedTracks] = useState<ContextTrack[]>([]);
   const [selectedTrackUri, setSelectedTrackUri] = useState<string | null>(null);
   const [panelView, setPanelView] = useState<PanelView>('album');
   const [savedTrackUris, setSavedTrackUris] = useState<Set<string>>(new Set());
   const [overrideUri, setOverrideUri] = useState<string | null>(null);
   const [overrideType, setOverrideType] = useState<string | null>(null);
-  const [likedOffset, setLikedOffset] = useState(0);
   const [likedHasMore, setLikedHasMore] = useState(true);
   const [isLoadingMoreLiked, setIsLoadingMoreLiked] = useState(false);
   const [libraryPlaylists, setLibraryPlaylists] = useState<UserPlaylist[]>([]);
@@ -69,6 +75,18 @@ export function useTracklistPanel(
   const libraryFetchedRef = useRef(false);
   const panelViewRef = useRef<PanelView>('album');
   const queueRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Synchronous guards for Liked Songs paging. State-based guards lose races
+  // against rapid scroll events because setState is async — by the time React
+  // commits `isLoadingMoreLiked = true`, several scroll callbacks have already
+  // passed the stale `false` check and started parallel fetches at the same
+  // offset, producing duplicate rows in the Liked Songs list.
+  const loadingMoreLikedRef = useRef(false);
+  const likedOffsetRef = useRef(0);
+  // Bumped on every showLikedSongs call. Inflight fetches capture the session
+  // they were started in and discard their result if the session has moved on
+  // — covers stale fetches that resolve after the user navigated away and
+  // back, which would otherwise pollute the new session.
+  const likedSessionRef = useRef(0);
 
   useEffect(() => {
     panelViewRef.current = panelView;
@@ -78,10 +96,13 @@ export function useTracklistPanel(
   const cacheRef = useRef<Record<string, ContextTrack[]>>({});
   const refetchPlaybackRef = useRef(refetchPlayback);
   refetchPlaybackRef.current = refetchPlayback;
-  // Mirror tracks to a ref so selectTrack can read the latest Liked Songs URIs
-  // without re-creating the callback on every page-load.
+  // Mirror tracks to refs so selectTrack can read the latest URIs without
+  // re-creating the callback on every page-load. Liked Songs has its own ref
+  // because its state is stored separately.
   const tracksRef = useRef<ContextTrack[]>([]);
+  const likedTracksRef = useRef<ContextTrack[]>([]);
   useEffect(() => { tracksRef.current = tracks; }, [tracks]);
+  useEffect(() => { likedTracksRef.current = likedTracks; }, [likedTracks]);
 
   const checkAndMergeSaved = useCallback(async (trackList: ContextTrack[]) => {
     if (trackList.length === 0) return;
@@ -175,18 +196,19 @@ export function useTracklistPanel(
     }
   }, [checkAndMergeSaved]);
 
-  const fetchLikedSongsPage = useCallback(async (offset: number, append: boolean): Promise<void> => {
+  const fetchLikedSongsPage = useCallback(async (offset: number, append: boolean, session: number): Promise<void> => {
     try {
       const { tracks: newTracks, hasMore } = await getLikedSongs(LIKED_PAGE_SIZE, offset);
-      if (panelViewRef.current !== 'liked') return;
-      setTracks(prev => append ? [...prev, ...newTracks] : newTracks);
+      if (session !== likedSessionRef.current) return;
+      setLikedTracks(prev => append ? [...prev, ...newTracks] : newTracks);
       checkAndMergeSaved(newTracks);
-      setLikedOffset(offset + newTracks.length);
+      likedOffsetRef.current = offset + newTracks.length;
       setLikedHasMore(hasMore);
     } catch (err) {
       console.error('Failed to fetch liked songs:', err);
-      if (panelViewRef.current === 'liked' && !append) {
-        setTracks([]);
+      if (session !== likedSessionRef.current) return;
+      if (!append) {
+        setLikedTracks([]);
       }
       setLikedHasMore(false);
     }
@@ -366,26 +388,46 @@ export function useTracklistPanel(
   }, [fetchQueueTracks]);
 
   const showLikedSongs = useCallback(async () => {
+    const session = ++likedSessionRef.current;
     setPanelView('liked');
     panelViewRef.current = 'liked';
     setOverrideUri(null);
     setOverrideType(null);
-    setTracks([]);
-    setLikedOffset(0);
+    likedOffsetRef.current = 0;
+    // Hold the load-more lock for the duration of the initial fetch — otherwise
+    // a scroll event fired during the fetch (e.g. from preserved scroll position
+    // when switching back from another tab) launches a second offset=0 fetch
+    // that appends a duplicate copy of the first page.
+    loadingMoreLikedRef.current = true;
+    setLikedTracks([]);
     setLikedHasMore(true);
     setIsLoading(true);
     setIsOpen(true);
-    await fetchLikedSongsPage(0, false);
-    setIsLoading(false);
+    try {
+      await fetchLikedSongsPage(0, false, session);
+    } finally {
+      if (session === likedSessionRef.current) {
+        loadingMoreLikedRef.current = false;
+        setIsLoading(false);
+      }
+    }
   }, [fetchLikedSongsPage]);
 
   const loadMoreLikedSongs = useCallback(async () => {
     if (panelViewRef.current !== 'liked') return;
-    if (!likedHasMore || isLoadingMoreLiked) return;
+    if (!likedHasMore || loadingMoreLikedRef.current) return;
+    loadingMoreLikedRef.current = true;
     setIsLoadingMoreLiked(true);
-    await fetchLikedSongsPage(likedOffset, true);
-    setIsLoadingMoreLiked(false);
-  }, [likedHasMore, isLoadingMoreLiked, likedOffset, fetchLikedSongsPage]);
+    const session = likedSessionRef.current;
+    try {
+      await fetchLikedSongsPage(likedOffsetRef.current, true, session);
+    } finally {
+      if (session === likedSessionRef.current) {
+        loadingMoreLikedRef.current = false;
+        setIsLoadingMoreLiked(false);
+      }
+    }
+  }, [likedHasMore, fetchLikedSongsPage]);
 
   const selectTrack = useCallback(async (trackUri: string) => {
     if (panelView === 'liked') {
@@ -402,7 +444,7 @@ export function useTracklistPanel(
         // list to shuffle through rather than looping the single clicked track.
         // We pass at most 100 URIs (Spotify's cap), starting from the clicked song
         // so it plays first; subsequent tracks shuffle.
-        const allUris = tracksRef.current.map(t => t.uri);
+        const allUris = likedTracksRef.current.map(t => t.uri);
         const startIdx = Math.max(0, allUris.indexOf(trackUri));
         const window = allUris.slice(startIdx, startIdx + 100);
         if (window.length > 1) {
@@ -514,7 +556,7 @@ export function useTracklistPanel(
   return {
     isOpen,
     isLoading,
-    tracks,
+    tracks: panelView === 'liked' ? likedTracks : tracks,
     selectedTrackUri,
     panelView,
     isSupportedContext,

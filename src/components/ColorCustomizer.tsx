@@ -222,7 +222,7 @@ const ColorCustomizer: React.FC<ColorCustomizerProps> = ({
                   className={`lyr-radio${lyricsPosition === 'right' ? ' active' : ''}`}
                   aria-hidden="true"
                 />
-                <span className="settings-row-label">Lyrics Position</span>
+                <span className="settings-row-label">Set Lyrics Position to Right Side</span>
               </button>
 
               <button
@@ -277,7 +277,10 @@ const ColorCustomizer: React.FC<ColorCustomizerProps> = ({
                     onClick={() => onSetArtBaseEnabled(!artBaseEnabled)}
                     title="Album art gradient"
                   >
-                    <span className="material-preset-swatch art-preset-swatch" />
+                    <span
+                      className="material-preset-swatch art-preset-swatch"
+                      style={{ background: artBaseGradient }}
+                    />
                     <span className="material-preset-label">Album Art</span>
                   </button>
                 )}

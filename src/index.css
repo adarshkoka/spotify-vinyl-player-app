@@ -1295,7 +1295,7 @@
   position: fixed;
   bottom: 0.3rem;
   right: 0.75rem;
-  z-index: 20;
+  z-index: -1;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -1458,10 +1458,7 @@
   background: #c8c8c8;
 }
 
-/* Album-art preset swatch (static rainbow) */
-.art-preset-swatch {
-  background: linear-gradient(135deg, #ff6b6b 0%, #feca57 25%, #1dd1a1 50%, #48dbfb 75%, #5f27cd 100%) !important;
-}
+/* Album-art preset swatch — background is set inline from artBaseGradient */
 
 .color-popover {
   background: rgba(18, 18, 18, 0.96);
