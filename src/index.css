@@ -1283,7 +1283,7 @@
   position: fixed;
   bottom: 0.3rem;
   right: 0.75rem;
-  z-index: -1;
+  z-index: 50;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -1312,6 +1312,8 @@
   background: transparent;
   border: 0;
   padding: 4px;
+  width: 44px;
+  height: 44px;
   color: rgba(255, 255, 255, 0.55);
   cursor: pointer;
   border-radius: 6px;
