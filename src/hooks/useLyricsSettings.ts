@@ -11,7 +11,7 @@ interface StoredLyricsSettings {
 
 const DEFAULTS: StoredLyricsSettings = {
   enabled: false,
-  position: 'flank',
+  position: 'right',
 };
 
 function load(): StoredLyricsSettings {

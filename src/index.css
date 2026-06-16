@@ -1080,25 +1080,13 @@
   justify-content: flex-start;
 }
 
-/* "Lyrics Position" toggle = right: anchor the album jacket so its left edge
-   sits flush with the disc's left outer edge on the turntable above, hide the
-   left lyric panel, and stretch the right lyric panel to cover everything to
-   the right of the jacket.
-   144px ≈ disc radius: turntable-base max-width 360px − 2×24px padding = 312px
-   platter, × 92% disc-on-platter ≈ 287px disc → 143.5px radius. */
-.transition-area.transition-area-lyrics-right {
-  justify-content: flex-start;
-  padding-left: calc(50% - 144px);
-}
-
+/* "Lyrics Position" toggle = right: keep the album jacket centered (same spot
+   as flank mode), hide the left lyric panel, and render the full lyric line in
+   the right panel so it appears off to the right of the centered jacket.
+   The right panel keeps its default left: calc(50% + 80px) start, which clears
+   the centered 140px-wide jacket. */
 .transition-area-lyrics-right .lyric-panel--left {
   display: none;
-}
-
-.transition-area-lyrics-right .lyric-panel--right {
-  /* jacket-left (50% − 144px) + 140px jacket width + 10px gap = 50% + 6px */
-  left: calc(50% + 6px);
-  right: 0;
 }
 
 /* Stage-specific animations for disc during transition */
@@ -1198,7 +1186,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1.5rem;
+  gap: 0.75rem;
   padding: 0.25rem 0;
 }
 

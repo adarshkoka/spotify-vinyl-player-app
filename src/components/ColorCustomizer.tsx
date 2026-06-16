@@ -222,7 +222,7 @@ const ColorCustomizer: React.FC<ColorCustomizerProps> = ({
                   className={`lyr-radio${lyricsPosition === 'right' ? ' active' : ''}`}
                   aria-hidden="true"
                 />
-                <span className="settings-row-label">Set Lyrics Position to Right Side</span>
+                <span className="settings-row-label">Lyrics on Right</span>
               </button>
 
               <button

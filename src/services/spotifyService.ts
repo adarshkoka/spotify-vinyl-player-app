@@ -238,6 +238,7 @@ interface SpotifyPlaylistTracksResponse {
       duration_ms: number;
     } | null;
   }>;
+  next: string | null;
 }
 
 export async function getAlbumTracks(albumId: string): Promise<ContextTrack[]> {
@@ -254,21 +255,29 @@ export async function getAlbumTracks(albumId: string): Promise<ContextTrack[]> {
 }
 
 export async function getPlaylistTracks(playlistId: string): Promise<ContextTrack[]> {
-  const data = await spotifyApiCall<SpotifyPlaylistTracksResponse>(
-    `playlists/${encodeURIComponent(playlistId)}/tracks?limit=50&fields=items(track(uri,name,artists(name),track_number,duration_ms))`
-  );
-  return data.items
-    .filter(item => item.track != null)
-    .map(item => {
-      const t = item.track!;
-      return {
+  // Spotify caps each page at 100 items, so page through `next` until exhausted
+  // to load the full playlist (unlike Liked Songs, the panel shows all at once).
+  const tracks: ContextTrack[] = [];
+  let offset = 0;
+  for (;;) {
+    const data = await spotifyApiCall<SpotifyPlaylistTracksResponse>(
+      `playlists/${encodeURIComponent(playlistId)}/tracks?limit=100&offset=${offset}&fields=next,items(track(uri,name,artists(name),track_number,duration_ms))`
+    );
+    for (const item of data.items) {
+      if (item.track == null) continue;
+      const t = item.track;
+      tracks.push({
         uri: t.uri,
         name: t.name,
         artists: t.artists.map(a => a.name).join(', '),
         track_number: t.track_number,
         duration_ms: t.duration_ms,
-      };
-    });
+      });
+    }
+    if (data.next == null) break;
+    offset += data.items.length;
+  }
+  return tracks;
 }
 
 export async function playTrackInContext(contextUri: string, trackUri: string, deviceId?: string): Promise<void> {
