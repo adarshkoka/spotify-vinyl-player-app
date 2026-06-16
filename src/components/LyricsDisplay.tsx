@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { findCurrentLine, findCurrentLineWindow, splitLineHalves, type LyricLine } from '../utils/lrcParser';
-import { LYRIC_WORD_LEAD_MS } from '../config';
+import { LYRIC_WORD_LEAD_MS, LYRIC_MS_PER_SYLLABLE, LYRIC_WORD_BASE_MS, LYRIC_PUNCT_PAUSE_MS, LYRIC_PAREN_TIME_SCALE } from '../config';
 
 interface LyricsDisplayProps {
   lines: LyricLine[];
@@ -13,25 +13,78 @@ interface LyricsDisplayProps {
   palette?: string[];
 }
 
-/** Cumulative end-fractions of the line duration per word, weighted by word length. */
-function wordEndFractions(words: string[]): number[] {
-  const weights = words.map(w => Math.max(1, w.length));
-  const total = weights.reduce((a, b) => a + b, 0) || 1;
-  const ends: number[] = [];
-  let acc = 0;
-  for (const w of weights) {
-    acc += w;
-    ends.push(acc / total);
-  }
-  return ends;
+/**
+ * Estimate a word's syllable count via vowel groups — a far better proxy for
+ * sung duration than character length (e.g. "through" → 1, "radioactive" → ~4).
+ */
+function countSyllables(token: string): number {
+  const w = token.toLowerCase().replace(/[^a-z]/g, '');
+  if (!w) return 1;
+  let groups = (w.match(/[aeiouy]+/g) ?? []).length;
+  if (w.endsWith('e') && groups > 1) groups -= 1; // silent trailing 'e'
+  return Math.max(1, groups);
 }
 
-/** Index of the word currently being sung for a given elapsed fraction (0–1) of the line. */
-function activeIndexFromFraction(ends: number[], frac: number): number {
-  for (let i = 0; i < ends.length; i++) {
-    if (frac < ends[i]) return i;
+const ENDS_WITH_PUNCT = /[,.;:!?—-]$/;
+
+/**
+ * Flag tokens that fall inside parentheses — backing vocals / ad-libs like
+ * "(bizarre)" or multi-word "(oh my god)". Tracks paren depth across tokens so
+ * opening, interior, and closing tokens of a group are all flagged.
+ */
+function markParenthetical(tokens: string[]): boolean[] {
+  const flags: boolean[] = [];
+  let depth = 0;
+  for (const tok of tokens) {
+    const opens = (tok.match(/\(/g) ?? []).length;
+    const closes = (tok.match(/\)/g) ?? []).length;
+    flags.push(depth > 0 || opens > 0);
+    depth = Math.max(0, depth + opens - closes);
   }
-  return ends.length - 1;
+  return flags;
+}
+
+/**
+ * Natural sung duration (ms) per token: base + syllables + a pause after
+ * punctuation. Parenthetical (backing-vocal) tokens are scaled down by
+ * LYRIC_PAREN_TIME_SCALE so they don't distort the main line's pacing.
+ */
+function estimateWordDurations(tokens: string[]): number[] {
+  const paren = markParenthetical(tokens);
+  return tokens.map((tok, i) => {
+    const dur =
+      LYRIC_WORD_BASE_MS
+      + countSyllables(tok) * LYRIC_MS_PER_SYLLABLE
+      + (ENDS_WITH_PUNCT.test(tok) ? LYRIC_PUNCT_PAUSE_MS : 0);
+    return paren[i] ? dur * LYRIC_PAREN_TIME_SCALE : dur;
+  });
+}
+
+/**
+ * Per-word start offsets (ms from line start). Durations are compressed to fit a
+ * shorter window (dense/fast lines) but never stretched to fill a longer one, so
+ * a slow line with a trailing gap reveals at a natural pace instead of dragging.
+ */
+function wordStartOffsets(durations: number[], windowMs: number): number[] {
+  const total = durations.reduce((a, b) => a + b, 0) || 1;
+  const scale = total > windowMs ? windowMs / total : 1;
+  const starts: number[] = [];
+  let acc = 0;
+  for (const d of durations) {
+    starts.push(acc * scale);
+    acc += d;
+  }
+  return starts;
+}
+
+/** Index of the word currently being sung — the last word whose start offset has passed. */
+function activeIndexFromElapsed(starts: number[], elapsedMs: number): number {
+  let idx = 0;
+  for (let i = 0; i < starts.length; i++) {
+    if (starts[i] <= elapsedMs) idx = i;
+    else break;
+  }
+  return idx;
 }
 
 const LyricsDisplay: React.FC<LyricsDisplayProps> = ({
@@ -73,14 +126,18 @@ const LyricsDisplay: React.FC<LyricsDisplayProps> = ({
           lastText = nextText;
           setCurrentText(nextText);
         }
-        // Interpolate the word being sung within the line's [startMs, endMs) window.
+        // Interpolate the word being sung within the line's [startMs, endMs) window
+        // using a syllable/punctuation natural-pace estimate (see config).
         let idx = -1;
         if (win) {
           const dur = Math.max(1, win.endMs - win.startMs);
-          // Look-ahead so words light up slightly before they're sung (see config).
-          const frac = Math.min(1, Math.max(0, (effective - win.startMs + LYRIC_WORD_LEAD_MS) / dur));
           const words = nextText.split(/\s+/).filter(Boolean);
-          if (words.length) idx = activeIndexFromFraction(wordEndFractions(words), frac);
+          if (words.length) {
+            // Look-ahead so words light up slightly before they're sung.
+            const elapsed = effective - win.startMs + LYRIC_WORD_LEAD_MS;
+            const starts = wordStartOffsets(estimateWordDurations(words), dur);
+            idx = activeIndexFromElapsed(starts, elapsed);
+          }
         }
         if (idx !== lastIdx) {
           lastIdx = idx;

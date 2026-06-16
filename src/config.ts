@@ -39,7 +39,34 @@ export const LYRIC_WORD_FADE_DURATION = 250;
  * it's sung rather than after. Increase if words feel late, decrease (or go
  * negative) if they feel early. Reasonable range: 0–400.
  */
-export const LYRIC_WORD_LEAD_MS = 400;
+export const LYRIC_WORD_LEAD_MS = 240;
+
+/**
+ * Estimated sung time (ms) per syllable for Colorful Lyrics. Each word's natural
+ * duration is `LYRIC_WORD_BASE_MS + syllables * LYRIC_MS_PER_SYLLABLE` (plus a
+ * punctuation pause), and the line's words are paced by these durations
+ * (compressed to fit fast lines, never stretched across slow trailing gaps).
+ * Raise if words feel too early on slow songs; lower if they feel late.
+ */
+export const LYRIC_MS_PER_SYLLABLE = 220;
+
+/** Flat per-word floor (ms) for Colorful Lyrics — covers consonant onset / very short words. */
+export const LYRIC_WORD_BASE_MS = 120;
+
+/**
+ * Extra hold (ms) added to a word that ends in punctuation (, . ; : ! ? — -),
+ * so the highlight lingers where a singer would naturally pause or breathe.
+ */
+export const LYRIC_PUNCT_PAUSE_MS = 200;
+
+/**
+ * Timing weight (0–1) for words inside parentheses — typically backing vocals /
+ * ad-libs like "(bizarre)" or "(ah)". `0` ignores them in the karaoke timing so
+ * they don't steal pacing from the main lyric (they light up with their
+ * neighbor); raise toward `1` to give them normal timing weight. They are always
+ * displayed and colored normally regardless of this value.
+ */
+export const LYRIC_PAREN_TIME_SCALE = 0;
 
 // ─── Lyrics typography ──────────────────────────────────────────────────────
 
