@@ -6,6 +6,7 @@ import { useTracklistPanel } from '../hooks/useTracklistPanel';
 import { useDiscScrub, type LedSkip } from '../hooks/useDiscScrub';
 import { useLyrics } from '../hooks/useLyrics';
 import { useLyricsSettings } from '../hooks/useLyricsSettings';
+import { useHapticsSettings } from '../hooks/useHapticsSettings';
 import { useArtBaseSettings } from '../hooks/useArtBaseSettings';
 import RoomScene from '../components/RoomScene';
 import RecordPlayer from '../components/RecordPlayer';
@@ -25,6 +26,7 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
   const [gradientColors, setGradientColors] = useState<ExtractedColors>(DEFAULT_COLORS);
   const { baseBackground, baseColor, baseMaterial, tonearmColor, tonearmMaterial, baseFavorites, tonearmFavorites, setBaseColor, setTonearmColor, applyMaterialPreset, addFavorite } = usePlayerColors();
   const { enabled: lyricsEnabled, position: lyricsPosition, colorful: lyricsColorful, setEnabled: setLyricsEnabled, setPosition: setLyricsPosition, setColorful: setLyricsColorful } = useLyricsSettings();
+  const { enabled: hapticsEnabled, setEnabled: setHapticsEnabled } = useHapticsSettings();
   const { lines: lyricLines } = useLyrics(track, lyricsEnabled);
   const { baseEnabled: artBaseEnabled, armEnabled: artArmEnabled, setBaseEnabled: setArtBaseEnabled, setArmEnabled: setArtArmEnabled } = useArtBaseSettings();
 
@@ -73,6 +75,7 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
     durationMs,
     isPlaying,
     canScrub,
+    hapticsEnabled,
     onSkipNext: skipNext,
     onSkipBack: skipBack,
   });
@@ -136,6 +139,7 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
           lyricsEnabled={lyricsEnabled}
           lyricsPosition={lyricsPosition}
           lyricsColorful={lyricsColorful}
+          hapticsEnabled={hapticsEnabled}
           artBaseEnabled={artBaseEnabled}
           artArmEnabled={artArmEnabled}
           artBaseGradient={gradientColors.busyGradient}
@@ -147,6 +151,7 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
           onSetLyricsEnabled={setLyricsEnabled}
           onSetLyricsPosition={setLyricsPosition}
           onSetLyricsColorful={setLyricsColorful}
+          onSetHapticsEnabled={setHapticsEnabled}
           onSetArtBaseEnabled={setArtBaseEnabled}
           onSetArtArmEnabled={setArtArmEnabled}
           onLogout={onLogout}
@@ -173,6 +178,7 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
             tonearmMaterial={effectiveTonearmMaterial}
             isScrubbing={isScrubbing}
             scrubAngle={scrubAngle}
+            hapticsEnabled={hapticsEnabled}
             onDiscPointerDown={scrubHandlers.onPointerDown}
             scrubDirection={scrubDirection}
             ledSkip={effectiveLedSkip}

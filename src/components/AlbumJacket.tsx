@@ -1,10 +1,13 @@
 import React from 'react';
+import { vibrate } from '../utils/haptics';
+import { HAPTIC_JACKET_TAP_MS } from '../config';
 
 interface AlbumJacketProps {
   albumArtUrl: string | null;
   className?: string;
   canOpen?: boolean;
   isOpen?: boolean;
+  hapticsEnabled?: boolean;
   onToggleOpen?: () => void;
 }
 
@@ -13,6 +16,7 @@ const AlbumJacket: React.FC<AlbumJacketProps> = ({
   className = '',
   canOpen = false,
   isOpen = false,
+  hapticsEnabled = true,
   onToggleOpen,
 }) => {
   const handleClick = () => {
@@ -23,8 +27,8 @@ const AlbumJacket: React.FC<AlbumJacketProps> = ({
   const handlePointerDown = (e: React.PointerEvent) => {
     if (!canOpen) return;
     // Light haptic confirmation on touch taps (no-op on mouse / unsupported browsers like iOS Safari).
-    if (e.pointerType === 'touch' && typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-      navigator.vibrate(10);
+    if (e.pointerType === 'touch') {
+      vibrate(HAPTIC_JACKET_TAP_MS, hapticsEnabled);
     }
   };
 

@@ -1,9 +1,15 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { seekToPosition, resumePlayback } from '../services/spotifyService';
+import { vibrate } from '../utils/haptics';
 import {
   SCRUB_MS_PER_DEGREE,
   SCRUB_FULL_ROTATION_THRESHOLD,
   SCRUB_SEEK_THROTTLE_MS,
+  HAPTIC_SCRUB_TICK_MS,
+  HAPTIC_SCRUB_TICK_DEGREES,
+  HAPTIC_SKIP_MS,
+  HAPTIC_PLAY_MS,
+  HAPTIC_PAUSE_MS,
 } from '../config';
 
 export type ScrubDirection = 'none' | 'forward' | 'backward';
@@ -14,6 +20,7 @@ interface UseDiscScrubOptions {
   durationMs: number;
   isPlaying: boolean;
   canScrub: boolean;
+  hapticsEnabled: boolean;
   onSkipNext: () => void;
   onSkipBack: () => void;
 }
@@ -43,6 +50,7 @@ export function useDiscScrub({
   durationMs,
   isPlaying,
   canScrub,
+  hapticsEnabled,
   onSkipNext,
   onSkipBack,
 }: UseDiscScrubOptions): UseDiscScrubReturn {
@@ -61,13 +69,20 @@ export function useDiscScrub({
   const hasDraggedRef = useRef(false);
   const skipBlinkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Haptics: only fire on touch input, and track the last rotation at which a
+  // scrub tick was emitted so ticks stay distance-quantized (not time-based).
+  const isTouchRef = useRef(false);
+  const lastTickDeltaRef = useRef(0);
+
   // Refs for stable callbacks in event listeners
   const onSkipNextRef = useRef(onSkipNext);
   const onSkipBackRef = useRef(onSkipBack);
   const durationMsRef = useRef(durationMs);
+  const hapticsEnabledRef = useRef(hapticsEnabled);
   onSkipNextRef.current = onSkipNext;
   onSkipBackRef.current = onSkipBack;
   durationMsRef.current = durationMs;
+  hapticsEnabledRef.current = hapticsEnabled;
 
   const handlePointerMove = useCallback((e: PointerEvent) => {
     if (!elementRef.current) return;
@@ -102,9 +117,24 @@ export function useDiscScrub({
       setScrubDirection('none');
     }
 
+    // Light "groove tick" haptic, distance-quantized: one pulse per
+    // HAPTIC_SCRUB_TICK_DEGREES of rotation in either direction. Advancing the
+    // baseline by whole increments keeps the tick count proportional to distance
+    // while a fast flick can't machine-gun the motor.
+    if (isTouchRef.current) {
+      const movedSinceTick = totalDeltaRef.current - lastTickDeltaRef.current;
+      if (Math.abs(movedSinceTick) >= HAPTIC_SCRUB_TICK_DEGREES) {
+        lastTickDeltaRef.current +=
+          Math.trunc(movedSinceTick / HAPTIC_SCRUB_TICK_DEGREES) * HAPTIC_SCRUB_TICK_DEGREES;
+        vibrate(HAPTIC_SCRUB_TICK_MS, hapticsEnabledRef.current);
+      }
+    }
+
     // Instant skip when full rotation threshold is crossed mid-drag
     if (Math.abs(totalDeltaRef.current) >= SCRUB_FULL_ROTATION_THRESHOLD) {
       skippedRef.current = true;
+      // Heavy "ka-chunk" to mark the track skip / go-back.
+      if (isTouchRef.current) vibrate(HAPTIC_SKIP_MS, hapticsEnabledRef.current);
       const skipType: LedSkip = totalDeltaRef.current > 0 ? 'skip-next' : 'skip-prev';
       setLedSkip(skipType);
       if (skipBlinkTimerRef.current) clearTimeout(skipBlinkTimerRef.current);
@@ -144,8 +174,13 @@ export function useDiscScrub({
     document.removeEventListener('pointermove', handlePointerMove);
     document.removeEventListener('pointerup', handlePointerUp);
 
-    // Tap with no meaningful drag — let the click event handle play/pause
+    // Tap with no meaningful drag — let the click event handle play/pause.
+    // The disc tap toggles playback, so buzz a light pulse when it will pause
+    // (tonearm lifts off) or a heavier needle-drop thud when it will play.
     if (!hasDraggedRef.current) {
+      if (isTouchRef.current) {
+        vibrate(wasPlayingRef.current ? HAPTIC_PAUSE_MS : HAPTIC_PLAY_MS, hapticsEnabledRef.current);
+      }
       setScrubDirection('none');
       setIsScrubbing(false);
       setScrubAngle(0);
@@ -193,6 +228,8 @@ export function useDiscScrub({
     lastAngleRef.current = angle;
     totalDeltaRef.current = 0;
     lastSeekRef.current = 0;
+    lastTickDeltaRef.current = 0;
+    isTouchRef.current = e.pointerType === 'touch';
     progressAtStartRef.current = progressMs;
     wasPlayingRef.current = isPlaying;
     skippedRef.current = false;

@@ -13,6 +13,7 @@ interface ColorCustomizerProps {
   lyricsEnabled: boolean;
   lyricsPosition: 'flank' | 'right';
   lyricsColorful: boolean;
+  hapticsEnabled: boolean;
   artBaseEnabled: boolean;
   artArmEnabled: boolean;
   artBaseGradient: string;
@@ -24,6 +25,7 @@ interface ColorCustomizerProps {
   onSetLyricsEnabled: (enabled: boolean) => void;
   onSetLyricsPosition: (position: 'flank' | 'right') => void;
   onSetLyricsColorful: (colorful: boolean) => void;
+  onSetHapticsEnabled: (enabled: boolean) => void;
   onSetArtBaseEnabled: (enabled: boolean) => void;
   onSetArtArmEnabled: (enabled: boolean) => void;
   onLogout: () => void;
@@ -49,6 +51,7 @@ const ColorCustomizer: React.FC<ColorCustomizerProps> = ({
   lyricsEnabled,
   lyricsPosition,
   lyricsColorful,
+  hapticsEnabled,
   artBaseEnabled,
   artArmEnabled,
   artBaseGradient,
@@ -60,6 +63,7 @@ const ColorCustomizer: React.FC<ColorCustomizerProps> = ({
   onSetLyricsEnabled,
   onSetLyricsPosition,
   onSetLyricsColorful,
+  onSetHapticsEnabled,
   onSetArtBaseEnabled,
   onSetArtArmEnabled,
   onLogout,
@@ -251,6 +255,20 @@ const ColorCustomizer: React.FC<ColorCustomizerProps> = ({
                   aria-hidden="true"
                 />
                 <span className="settings-row-label">Karaoke Mode</span>
+              </button>
+
+              <button
+                type="button"
+                className="settings-row"
+                onClick={() => onSetHapticsEnabled(!hapticsEnabled)}
+                role="switch"
+                aria-checked={hapticsEnabled}
+              >
+                <span
+                  className={`lyr-radio${hapticsEnabled ? ' active' : ''}`}
+                  aria-hidden="true"
+                />
+                <span className="settings-row-label">Haptics</span>
               </button>
 
               <button

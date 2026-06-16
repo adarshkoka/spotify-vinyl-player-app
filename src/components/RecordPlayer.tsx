@@ -25,6 +25,7 @@ interface RecordPlayerProps {
   scrubDirection?: ScrubDirection;
   ledSkip?: LedSkip;
   ledPause?: boolean;
+  hapticsEnabled?: boolean;
   onDiscPointerDown?: (e: React.PointerEvent<HTMLDivElement>) => void;
   // Tracklist panel props
   isTracklistOpen?: boolean;
@@ -85,6 +86,7 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
   scrubDirection = 'none',
   ledSkip = 'none',
   ledPause = false,
+  hapticsEnabled = true,
   onDiscPointerDown,
   isTracklistOpen = false,
   isTracklistLoading = false,
@@ -190,6 +192,7 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
             className={`stage-${transitionStage}`}
             canOpen={transitionStage !== 'jacket-enter' && transitionStage !== 'eject' && tracklistAvailable}
             isOpen={isTracklistOpen}
+            hapticsEnabled={hapticsEnabled}
             onToggleOpen={onToggleTracklist}
           />
         )}

@@ -123,6 +123,36 @@ export const SCRUB_FULL_ROTATION_THRESHOLD = 690;
 /** Minimum interval (ms) between seek API calls to avoid rate limits. */
 export const SCRUB_SEEK_THROTTLE_MS = 300;
 
+// ─── Haptics (Web Vibration API, Android) ───────────────────────────────────
+//
+// The only broadly available haptic API on Android browsers is the Web
+// Vibration API (navigator.vibrate), which is coarse: motor on/off durations or
+// [buzz, pause, buzz, …] patterns only, no amplitude. iOS Safari has no API at
+// all (silent no-op). Distinct "feelings" are expressed as distinct durations /
+// patterns. Each value is a single ms duration or a pattern array.
+
+/** Light "groove tick" emitted while scrubbing the disc to seek (forward/rewind). */
+export const HAPTIC_SCRUB_TICK_MS: number | number[] = 4;
+
+/**
+ * Degrees of disc rotation between scrub ticks. Ticks are distance-quantized
+ * (not time-throttled) off the same rotation accumulator that drives seeking,
+ * so the cadence tracks how far the disc is moved. Lower = more frequent ticks.
+ */
+export const HAPTIC_SCRUB_TICK_DEGREES = 25;
+
+/** Heavy "ka-chunk" when a two-rotation scrub skips to the next/previous track. */
+export const HAPTIC_SKIP_MS: number | number[] = [25, 40, 25];
+
+/** Light pulse when tapping the disc to pause — the tonearm lifts off. */
+export const HAPTIC_PAUSE_MS: number | number[] = 10;
+
+/** Needle-drop "thud" when tapping the disc to play — the tonearm lands. */
+export const HAPTIC_PLAY_MS: number | number[] = [10, 6, 22];
+
+/** Light confirmation tap when the album jacket is tapped to open the panel. */
+export const HAPTIC_JACKET_TAP_MS: number | number[] = 10;
+
 // ─── Layout spacing (pixels) ────────────────────────────────────────────────
 
 /**
