@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { ContextTrack, UserPlaylist } from '../services/spotifyService';
-import type { PanelView } from '../hooks/useTracklistPanel';
+import type { PanelView, ArtistSubsection } from '../hooks/useTracklistPanel';
 
 function formatDuration(ms: number): string {
   const minutes = Math.floor(ms / 60000);
@@ -12,6 +12,13 @@ interface TracklistPanelProps {
   isOpen: boolean;
   isLoading?: boolean;
   tracks: ContextTrack[];
+  /** Artist tab "Popular" subsection (the artist's top tracks). */
+  artistTopTracks?: ContextTrack[];
+  /** True while the Artist tab's "Saved" list is still loading. */
+  isLoadingArtistSaved?: boolean;
+  /** Active Artist-tab subsection. */
+  artistSubsection?: ArtistSubsection;
+  onSetArtistSubsection?: (sub: ArtistSubsection) => void;
   currentTrackUri: string | null;
   accentColor: string;
   panelView: PanelView;
@@ -108,6 +115,10 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
   isOpen,
   isLoading = false,
   tracks,
+  artistTopTracks = [],
+  isLoadingArtistSaved = false,
+  artistSubsection = 'popular',
+  onSetArtistSubsection,
   currentTrackUri,
   accentColor,
   panelView,
@@ -185,6 +196,54 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
     return () => el.removeEventListener('scroll', handleScroll);
   }, [panelView, likedHasMore, isLoadingMoreLiked, onLoadMoreLikedSongs]);
 
+  // One track row. Reused by every view, including both Artist subsections — each
+  // list carries its own 1..N `track_number`, so per-subsection numbering is free.
+  const renderRow = (t: ContextTrack) => (
+    <button
+      key={`${t.uri}-${t.track_number}`}
+      className={`tracklist-item ${t.uri === currentTrackUri ? 'tracklist-item-active' : ''}`}
+      style={t.uri === currentTrackUri ? { borderLeftColor: accentColor } as React.CSSProperties : undefined}
+      onClick={() => onSelectTrack(t.uri)}
+    >
+      {showTrackNumbers && (
+        <span className="tracklist-num">{t.track_number}</span>
+      )}
+      <span className="tracklist-info">
+        <span
+          className="tracklist-name"
+          style={t.uri === currentTrackUri ? { color: accentColor } : undefined}
+        >
+          {t.name}
+        </span>
+        <span className="tracklist-artist">{t.artists}</span>
+      </span>
+      {onAddToQueue && (
+        <AddToQueueButton trackUri={t.uri} onAdd={onAddToQueue} />
+      )}
+      {onSaveTrack && (
+        <HeartButton
+          trackUri={t.uri}
+          isSaved={savedTrackUris?.has(t.uri) ?? false}
+          onSave={onSaveTrack}
+        />
+      )}
+      <span className="tracklist-dur">{formatDuration(t.duration_ms)}</span>
+    </button>
+  );
+
+  const skeletonRows = (count: number) =>
+    Array.from({ length: count }).map((_, i) => (
+      <div key={i} className="tracklist-skeleton-row">
+        <div className="tracklist-skeleton-title" />
+        <div className="tracklist-skeleton-artist" />
+      </div>
+    ));
+
+  // Artist tab is split into Popular / Saved pill subsections (only one shown at
+  // a time). Popular is the fast default; Saved fills in (often already prefetched).
+  const artistActiveList = artistSubsection === 'saved' ? tracks : artistTopTracks;
+  const artistActiveLoading = artistSubsection === 'saved' ? isLoadingArtistSaved : isLoading;
+
   return (
     <div className={`tracklist-panel ${isOpen ? 'tracklist-panel-open' : ''}`}>
       <div className="tracklist-panel-inner">
@@ -247,7 +306,38 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
 
         {/* Track list (or Library grid) */}
         <div className="tracklist-scroll" ref={scrollRef}>
-          {panelView === 'library' ? (
+          {panelView === 'artist' ? (
+            <>
+              {/* Popular / Saved subsection pills */}
+              <div className="tracklist-subsection-pills">
+                <button
+                  className={`tracklist-subsection-pill ${artistSubsection === 'popular' ? 'tracklist-subsection-pill-active' : ''}`}
+                  style={artistSubsection === 'popular' ? { color: accentColor, borderColor: accentColor } : undefined}
+                  onClick={() => onSetArtistSubsection?.('popular')}
+                >
+                  Popular
+                </button>
+                <button
+                  className={`tracklist-subsection-pill ${artistSubsection === 'saved' ? 'tracklist-subsection-pill-active' : ''}`}
+                  style={artistSubsection === 'saved' ? { color: accentColor, borderColor: accentColor } : undefined}
+                  onClick={() => onSetArtistSubsection?.('saved')}
+                >
+                  Saved
+                </button>
+              </div>
+              {artistActiveLoading && artistActiveList.length === 0 ? (
+                skeletonRows(5)
+              ) : artistActiveList.length === 0 ? (
+                <div className="tracklist-library-placeholder">
+                  {artistSubsection === 'saved'
+                    ? `No liked songs by ${currentArtistName}`
+                    : 'No popular tracks'}
+                </div>
+              ) : (
+                artistActiveList.map(renderRow)
+              )}
+            </>
+          ) : panelView === 'library' ? (
             isLoadingLibrary ? (
               <div className="library-grid">
                 {Array.from({ length: 6 }).map((_, i) => (
@@ -278,52 +368,9 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
               </div>
             )
           ) : isLoading ? (
-            Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="tracklist-skeleton-row">
-                <div className="tracklist-skeleton-title" />
-                <div className="tracklist-skeleton-artist" />
-              </div>
-            ))
-          ) : panelView === 'artist' && tracks.length === 0 ? (
-            <div className="tracklist-library-placeholder">
-              No liked songs by {currentArtistName}
-            </div>
+            skeletonRows(5)
           ) : (
-            tracks.map((t) => (
-            <button
-              key={`${t.uri}-${t.track_number}`}
-              className={`tracklist-item ${t.uri === currentTrackUri ? 'tracklist-item-active' : ''}`}
-              style={t.uri === currentTrackUri ? { borderLeftColor: accentColor } as React.CSSProperties : undefined}
-              onClick={() => onSelectTrack(t.uri)}
-            >
-              {showTrackNumbers && (
-                <span className="tracklist-num">{t.track_number}</span>
-              )}
-              <span className="tracklist-info">
-                <span
-                  className="tracklist-name"
-                  style={t.uri === currentTrackUri ? { color: accentColor } : undefined}
-                >
-                  {t.name}
-                </span>
-                <span className="tracklist-artist">{t.artists}</span>
-              </span>
-              {onAddToQueue && (
-                <AddToQueueButton
-                  trackUri={t.uri}
-                  onAdd={onAddToQueue}
-                />
-              )}
-              {onSaveTrack && (
-                <HeartButton
-                  trackUri={t.uri}
-                  isSaved={savedTrackUris?.has(t.uri) ?? false}
-                  onSave={onSaveTrack}
-                />
-              )}
-              <span className="tracklist-dur">{formatDuration(t.duration_ms)}</span>
-            </button>
-          ))
+            tracks.map(renderRow)
           )}
           {panelView === 'liked' && isLoadingMoreLiked && (
             <div className="tracklist-skeleton-row">

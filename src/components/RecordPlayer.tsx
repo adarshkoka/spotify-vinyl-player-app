@@ -6,7 +6,7 @@ import Tonearm from './Tonearm';
 import type { TransitionStage } from '../types/player';
 import type { SpotifyTrack, ContextTrack, UserPlaylist } from '../services/spotifyService';
 import type { MaterialPreset } from '../hooks/usePlayerColors';
-import type { PanelView } from '../hooks/useTracklistPanel';
+import type { PanelView, ArtistSubsection } from '../hooks/useTracklistPanel';
 import type { ScrubDirection, LedSkip } from '../hooks/useDiscScrub';
 
 interface RecordPlayerProps {
@@ -31,6 +31,10 @@ interface RecordPlayerProps {
   isTracklistOpen?: boolean;
   isTracklistLoading?: boolean;
   tracklistTracks?: ContextTrack[];
+  artistTopTracks?: ContextTrack[];
+  isLoadingArtistSaved?: boolean;
+  artistSubsection?: ArtistSubsection;
+  onSetArtistSubsection?: (sub: ArtistSubsection) => void;
   currentTrackUri?: string | null;
   panelView?: PanelView;
   isPlaylist?: boolean;
@@ -91,6 +95,10 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
   isTracklistOpen = false,
   isTracklistLoading = false,
   tracklistTracks = [],
+  artistTopTracks = [],
+  isLoadingArtistSaved = false,
+  artistSubsection = 'popular',
+  onSetArtistSubsection,
   currentTrackUri = null,
   panelView = 'playlist',
   isPlaylist = false,
@@ -212,6 +220,10 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
         isOpen={isTracklistOpen}
         isLoading={isTracklistLoading}
         tracks={tracklistTracks}
+        artistTopTracks={artistTopTracks}
+        isLoadingArtistSaved={isLoadingArtistSaved}
+        artistSubsection={artistSubsection}
+        onSetArtistSubsection={onSetArtistSubsection}
         currentTrackUri={currentTrackUri}
         accentColor={tracklistAccentColor ?? baseColor}
         panelView={panelView}

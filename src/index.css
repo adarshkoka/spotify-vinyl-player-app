@@ -704,6 +704,38 @@
   text-overflow: ellipsis;
 }
 
+/* Artist tab "Popular / Saved" subsection pills — a small segmented control at
+   the top of the list. The active pill's color + border are set inline with the
+   panel accent color; the subtle background highlight stays constant. */
+.tracklist-subsection-pills {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 2px 0 8px;
+}
+.tracklist-subsection-pill {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+.tracklist-subsection-pill:hover {
+  color: rgba(255, 255, 255, 0.85);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+.tracklist-subsection-pill-active {
+  color: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.08);
+}
+
 /* Library view — empty / error state */
 .tracklist-library-placeholder {
   display: flex;

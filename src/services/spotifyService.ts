@@ -381,12 +381,9 @@ interface SpotifyQueueResponse {
     artists: SpotifyArtist[];
     duration_ms: number;
   } | null;
-  queue: Array<{
-    uri: string;
-    name: string;
-    artists: SpotifyArtist[];
-    duration_ms: number;
-  }>;
+  // Queue items are full track objects (id, album, etc.) — getUpcomingTracks
+  // relies on those fields, while getQueue only reads a subset.
+  queue: SpotifyTrack[];
 }
 
 export async function getQueue(): Promise<ContextTrack[]> {
@@ -413,6 +410,22 @@ export async function getQueue(): Promise<ContextTrack[]> {
     });
   }
   return result;
+}
+
+/**
+ * The next `limit` upcoming tracks from the playback queue as full
+ * `SpotifyTrack` objects (with id/album), used to prefetch lyrics ahead of an
+ * auto-advance. Unlike `getQueue`, this preserves the album/artist data the
+ * LRCLIB exact-match lookup needs. Returns [] if the queue is empty/unavailable.
+ */
+export async function getUpcomingTracks(limit = 1): Promise<SpotifyTrack[]> {
+  try {
+    const data = await spotifyApiCall<SpotifyQueueResponse>('me/player/queue');
+    return data.queue.slice(0, limit);
+  } catch (error) {
+    console.warn('Failed to fetch upcoming tracks:', error);
+    return [];
+  }
 }
 
 export async function addToQueue(trackUri: string): Promise<void> {
@@ -513,6 +526,23 @@ async function getArtistTopTracks(artistId: string): Promise<CandidateTrack[]> {
     uri: t.uri,
     name: t.name,
     artists: t.artists,
+    duration_ms: t.duration_ms,
+  }));
+}
+
+/**
+ * The artist's most popular tracks (Spotify top-tracks, ordered by popularity)
+ * as ContextTrack[] for the Artist tab's "Popular" subsection. One cheap call —
+ * Spotify returns up to 10, numbered 1..N for the track-number column. Not
+ * filtered by saved state (these are popular tracks regardless of likes).
+ */
+export async function getArtistTopTracksAsContext(artistId: string, limit = 10): Promise<ContextTrack[]> {
+  const top = await getArtistTopTracks(artistId);
+  return top.slice(0, limit).map((t, i) => ({
+    uri: t.uri,
+    name: t.name,
+    artists: t.artists.map(a => a.name).join(', '),
+    track_number: i + 1,
     duration_ms: t.duration_ms,
   }));
 }

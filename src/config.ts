@@ -39,7 +39,7 @@ export const LYRIC_WORD_FADE_DURATION = 250;
  * it's sung rather than after. Increase if words feel late, decrease (or go
  * negative) if they feel early. Reasonable range: 0–400.
  */
-export const LYRIC_WORD_LEAD_MS = 210;
+export const LYRIC_WORD_LEAD_MS = 200;
 
 /**
  * Estimated sung time (ms) per syllable for Colorful Lyrics. Each word's natural

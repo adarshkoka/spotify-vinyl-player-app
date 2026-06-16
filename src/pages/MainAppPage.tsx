@@ -4,7 +4,8 @@ import { useTrackTransition } from '../hooks/useTrackTransition';
 import { usePlayerColors } from '../hooks/usePlayerColors';
 import { useTracklistPanel } from '../hooks/useTracklistPanel';
 import { useDiscScrub, type LedSkip } from '../hooks/useDiscScrub';
-import { useLyrics } from '../hooks/useLyrics';
+import { useLyrics, prefetchLyrics, loadLyrics, toLyricLookup, type LyricLookup } from '../hooks/useLyrics';
+import { getUpcomingTracks, type ContextTrack } from '../services/spotifyService';
 import { useLyricsSettings } from '../hooks/useLyricsSettings';
 import { useHapticsSettings } from '../hooks/useHapticsSettings';
 import { useArtBaseSettings } from '../hooks/useArtBaseSettings';
@@ -30,6 +31,21 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
   const { lines: lyricLines } = useLyrics(track, lyricsEnabled);
   const { baseEnabled: artBaseEnabled, armEnabled: artArmEnabled, setBaseEnabled: setArtBaseEnabled, setArmEnabled: setArtArmEnabled } = useArtBaseSettings();
 
+  // Warm the lyrics cache for a track the user just picked, before Spotify even
+  // confirms the play. Panel rows carry no album, so this resolves via /search.
+  const prefetchSelectionLyrics = (t: ContextTrack) => {
+    if (!lyricsEnabled) return;
+    const id = t.uri.split(':').pop() ?? '';
+    if (!id) return;
+    const info: LyricLookup = {
+      id,
+      trackName: t.name,
+      artistName: t.artists.split(',')[0]?.trim() ?? '',
+      durationSec: Math.round(t.duration_ms / 1000),
+    };
+    prefetchLyrics(info);
+  };
+
   const effectiveBaseBackground = artBaseEnabled ? gradientColors.busyGradient : baseBackground;
   const effectiveBaseColor = artBaseEnabled ? gradientColors.busyDominant : baseColor;
   const effectiveBaseMaterial = artBaseEnabled ? null : baseMaterial;
@@ -49,7 +65,7 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
     else setArtArmEnabled(false);
     applyMaterialPreset(target, preset);
   };
-  const { isOpen: isTracklistOpen, isLoading: isTracklistLoading, tracks: tracklistTracks, selectedTrackUri, panelView, isContextPlaylistLarge, savedTrackUris, isLoadingMoreLiked, likedHasMore, libraryPlaylists, isLoadingLibrary, toggleOpen: toggleTracklist, close: closeTracklist, selectTrack, showAlbum, showLibrary, showPlaylist, showQueue, showLikedSongs, showArtist, loadMoreLikedSongs, addToQueue, saveTrack } = useTracklistPanel(contextUri, contextType, track?.album ?? null, track?.uri, refetchPlayback, track?.artists?.[0]?.id ?? null);
+  const { isOpen: isTracklistOpen, isLoading: isTracklistLoading, tracks: tracklistTracks, artistTopTracks, isLoadingArtistSaved, artistSubsection, setArtistSubsection, prefetchArtist, selectedTrackUri, panelView, isContextPlaylistLarge, savedTrackUris, isLoadingMoreLiked, likedHasMore, libraryPlaylists, isLoadingLibrary, toggleOpen: toggleTracklist, close: closeTracklist, selectTrack, showAlbum, showLibrary, showPlaylist, showQueue, showLikedSongs, showArtist, loadMoreLikedSongs, addToQueue, saveTrack } = useTracklistPanel(contextUri, contextType, track?.album ?? null, track?.uri, refetchPlayback, track?.artists?.[0]?.id ?? null, prefetchSelectionLyrics);
 
   const handleToggleTracklist = () => {
     skipToPlatter();
@@ -104,15 +120,40 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
   const tracklistAccentColor = pickTracklistAccentColor(baseColor, tonearmColor, gradientColors.vibrantAccent);
   const tracklistAvailable = contextType === 'playlist' || (track?.album?.total_tracks ?? 0) > 1;
 
-  // Extract colors when track changes
+  // Priority chain on track change. Lyrics (current track) and album-art colors
+  // both start immediately/concurrently — they're lightweight and visible. The
+  // heavy Artist-tab prefetch (liked songs by artist) is gated to start only
+  // after BOTH have settled, so it never competes with the time-sensitive work.
+  // The cleanup `cancelled` flag means a rapid skip supersedes the previous
+  // track's gate before its prefetch fires, avoiding a burst of heavy fetches.
   useEffect(() => {
+    let cancelled = false;
     const imageUrl = track?.album?.images?.[0]?.url;
-    if (imageUrl) {
-      extractColors(imageUrl).then(setGradientColors);
-    } else {
-      setGradientColors(DEFAULT_COLORS);
-    }
-  }, [track?.id]);
+    const colorsP = imageUrl
+      ? extractColors(imageUrl)
+          .then(c => { if (!cancelled) setGradientColors(c); })
+          .catch(() => { if (!cancelled) setGradientColors(DEFAULT_COLORS); })
+      : Promise.resolve().then(() => { if (!cancelled) setGradientColors(DEFAULT_COLORS); });
+    const lyricsP = (lyricsEnabled && track)
+      ? loadLyrics(toLyricLookup(track)).then(() => {}).catch(() => {})
+      : Promise.resolve();
+    const artistId = track?.artists?.[0]?.id;
+    Promise.all([lyricsP, colorsP]).then(() => {
+      if (!cancelled && artistId) prefetchArtist(artistId);
+    });
+    return () => { cancelled = true; };
+  }, [track?.id, lyricsEnabled]);
+
+  // Prefetch lyrics for the next queued track while the current one plays, so
+  // an auto-advance shows lyrics instantly instead of waiting on a cold fetch.
+  useEffect(() => {
+    if (!lyricsEnabled || !track) return;
+    let cancelled = false;
+    getUpcomingTracks(1)
+      .then(next => { if (!cancelled && next[0]) prefetchLyrics(toLyricLookup(next[0])); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [track?.id, lyricsEnabled]);
 
   // Auto-open Liked Songs on first load if no song is currently playing on the
   // user's Spotify account — so the user can start a song without leaving the app.
@@ -186,6 +227,10 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
             isTracklistOpen={isTracklistOpen}
             isTracklistLoading={isTracklistLoading}
             tracklistTracks={tracklistTracks}
+            artistTopTracks={artistTopTracks}
+            isLoadingArtistSaved={isLoadingArtistSaved}
+            artistSubsection={artistSubsection}
+            onSetArtistSubsection={setArtistSubsection}
             currentTrackUri={selectedTrackUri ?? track?.uri ?? null}
             panelView={panelView}
             isPlaylist={contextType === 'playlist' && !isContextPlaylistLarge}

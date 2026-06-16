@@ -6,6 +6,7 @@ import {
   getQueue,
   getLikedSongs,
   getLikedSongsByArtist,
+  getArtistTopTracksAsContext,
   getRecentDevice,
   getUserPlaylists,
   playTrackInContext,
@@ -21,6 +22,20 @@ import {
 
 export type PanelView = 'album' | 'library' | 'playlist' | 'queue' | 'liked' | 'artist';
 
+// The Artist tab's two subsections. 'popular' = the artist's top tracks (fast),
+// 'saved' = your liked songs by the artist (slow). Persisted globally so the
+// last-viewed subsection leads on the next open, even for a different artist.
+export type ArtistSubsection = 'popular' | 'saved';
+const ARTIST_SUBSECTION_KEY = 'artist-subsection';
+
+function loadArtistSubsection(): ArtistSubsection {
+  try {
+    return localStorage.getItem(ARTIST_SUBSECTION_KEY) === 'saved' ? 'saved' : 'popular';
+  } catch {
+    return 'popular';
+  }
+}
+
 const LIKED_PAGE_SIZE = 50;
 
 // A playlist context larger than this is never loaded into the panel — fetching
@@ -33,6 +48,15 @@ interface UseTracklistPanelReturn {
   isOpen: boolean;
   isLoading: boolean;
   tracks: ContextTrack[];
+  /** Artist tab "Popular" subsection — the artist's top tracks. */
+  artistTopTracks: ContextTrack[];
+  /** True while the Artist tab's "Saved" list is still being fetched. */
+  isLoadingArtistSaved: boolean;
+  /** Which Artist-tab subsection is active (persisted globally). */
+  artistSubsection: ArtistSubsection;
+  setArtistSubsection: (sub: ArtistSubsection) => void;
+  /** Warm both Artist-tab caches for an artist without opening the panel. */
+  prefetchArtist: (artistId: string) => void;
   selectedTrackUri: string | null;
   panelView: PanelView;
   /** True once the current playlist context is known to exceed LARGE_PLAYLIST_THRESHOLD. */
@@ -63,6 +87,10 @@ export function useTracklistPanel(
   currentTrackUri?: string | null,
   refetchPlayback?: (options?: { untilTrackChanges?: boolean }) => Promise<void>,
   currentArtistId?: string | null,
+  /** Called with the picked row the instant a track is selected, so its lyrics
+   *  can be prefetched in parallel with the (slow) play-confirmation. No-op
+   *  when lyrics are disabled. */
+  onSelectPrefetch?: (track: ContextTrack) => void,
 ): UseTracklistPanelReturn {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -78,6 +106,11 @@ export function useTracklistPanel(
   // the same isolation reason as likedTracks — async writes from the artist
   // catalog fetch must never bleed into another view's list.
   const [artistTracks, setArtistTracks] = useState<ContextTrack[]>([]);
+  // Artist tab "Popular" subsection (the artist's top tracks). Kept separate
+  // from artistTracks (the "Saved" list) so each subsection has its own state.
+  const [artistTopTracks, setArtistTopTracks] = useState<ContextTrack[]>([]);
+  const [isLoadingArtistSaved, setIsLoadingArtistSaved] = useState(false);
+  const [artistSubsection, setArtistSubsectionState] = useState<ArtistSubsection>(loadArtistSubsection);
   const [selectedTrackUri, setSelectedTrackUri] = useState<string | null>(null);
   const [panelView, setPanelView] = useState<PanelView>('album');
   const [savedTrackUris, setSavedTrackUris] = useState<Set<string>>(new Set());
@@ -108,6 +141,7 @@ export function useTracklistPanel(
   // same artist is instant; the session ref discards a fetch whose artist has
   // changed (the now-playing song — and thus the artist — can change mid-fetch).
   const artistCacheRef = useRef<Record<string, ContextTrack[]>>({});
+  const artistTopCacheRef = useRef<Record<string, ContextTrack[]>>({});
   const artistSessionRef = useRef(0);
 
   useEffect(() => {
@@ -122,15 +156,28 @@ export function useTracklistPanel(
   const playlistCountCacheRef = useRef<Record<string, number>>({});
   const refetchPlaybackRef = useRef(refetchPlayback);
   refetchPlaybackRef.current = refetchPlayback;
+  const onSelectPrefetchRef = useRef(onSelectPrefetch);
+  onSelectPrefetchRef.current = onSelectPrefetch;
+  const currentArtistIdRef = useRef(currentArtistId);
+  currentArtistIdRef.current = currentArtistId;
+  // In-flight artist fetches keyed by artist id, so a background prefetch and a
+  // tab-open showArtist for the same artist share one request instead of racing
+  // (getLikedSongsByArtist is heavy — we never want it running twice at once).
+  const artistTopInflightRef = useRef<Record<string, Promise<ContextTrack[]>>>({});
+  const artistSavedInflightRef = useRef<Record<string, Promise<ContextTrack[]>>>({});
   // Mirror tracks to refs so selectTrack can read the latest URIs without
   // re-creating the callback on every page-load. Liked Songs has its own ref
   // because its state is stored separately.
   const tracksRef = useRef<ContextTrack[]>([]);
   const likedTracksRef = useRef<ContextTrack[]>([]);
   const artistTracksRef = useRef<ContextTrack[]>([]);
+  const artistTopTracksRef = useRef<ContextTrack[]>([]);
+  const artistSubsectionRef = useRef<ArtistSubsection>(artistSubsection);
   useEffect(() => { tracksRef.current = tracks; }, [tracks]);
   useEffect(() => { likedTracksRef.current = likedTracks; }, [likedTracks]);
   useEffect(() => { artistTracksRef.current = artistTracks; }, [artistTracks]);
+  useEffect(() => { artistTopTracksRef.current = artistTopTracks; }, [artistTopTracks]);
+  useEffect(() => { artistSubsectionRef.current = artistSubsection; }, [artistSubsection]);
 
   const checkAndMergeSaved = useCallback(async (trackList: ContextTrack[]) => {
     if (trackList.length === 0) return;
@@ -490,6 +537,33 @@ export function useTracklistPanel(
     }
   }, [fetchLikedSongsPage]);
 
+  // Cache-aware, inflight-deduped loaders for the two Artist-tab subsections.
+  // Both showArtist (tab open) and prefetchArtist (background) go through these,
+  // so a prefetch already running is reused instead of starting a second fetch.
+  const fetchArtistTop = useCallback((artistId: string): Promise<ContextTrack[]> => {
+    const cached = artistTopCacheRef.current[artistId];
+    if (cached) return Promise.resolve(cached);
+    const existing = artistTopInflightRef.current[artistId];
+    if (existing) return existing;
+    const p = getArtistTopTracksAsContext(artistId)
+      .then(result => { artistTopCacheRef.current[artistId] = result; delete artistTopInflightRef.current[artistId]; return result; })
+      .catch(err => { delete artistTopInflightRef.current[artistId]; throw err; });
+    artistTopInflightRef.current[artistId] = p;
+    return p;
+  }, []);
+
+  const fetchArtistSaved = useCallback((artistId: string): Promise<ContextTrack[]> => {
+    const cached = artistCacheRef.current[artistId];
+    if (cached) return Promise.resolve(cached);
+    const existing = artistSavedInflightRef.current[artistId];
+    if (existing) return existing;
+    const p = getLikedSongsByArtist(artistId)
+      .then(result => { artistCacheRef.current[artistId] = result; delete artistSavedInflightRef.current[artistId]; return result; })
+      .catch(err => { delete artistSavedInflightRef.current[artistId]; throw err; });
+    artistSavedInflightRef.current[artistId] = p;
+    return p;
+  }, []);
+
   const showArtist = useCallback(async () => {
     if (!currentArtistId) return;
     const artistId = currentArtistId;
@@ -500,31 +574,84 @@ export function useTracklistPanel(
     setOverrideType(null);
     setIsOpen(true);
 
-    // Re-opening the same artist is instant from the per-session cache. These
-    // tracks are all liked-only, so seed savedTrackUris to render filled hearts.
-    const cached = artistCacheRef.current[artistId];
-    if (cached) {
+    // Popular subsection (fast — one call, often already prefetched). Top tracks
+    // aren't necessarily liked, so checkAndMergeSaved fills their real heart state.
+    const topCached = artistTopCacheRef.current[artistId];
+    if (topCached) {
+      setArtistTopTracks(topCached);
       setIsLoading(false);
-      setArtistTracks(cached);
-      setSavedTrackUris(prev => new Set([...prev, ...cached.map(t => t.uri)]));
-      return;
+      checkAndMergeSaved(topCached);
+    } else {
+      setArtistTopTracks([]);
+      setIsLoading(true);
+      fetchArtistTop(artistId)
+        .then(result => {
+          if (session !== artistSessionRef.current) return;
+          setArtistTopTracks(result);
+          checkAndMergeSaved(result);
+        })
+        .catch(err => { if (session === artistSessionRef.current) { console.error('Failed to load artist top tracks:', err); setArtistTopTracks([]); } })
+        .finally(() => { if (session === artistSessionRef.current) setIsLoading(false); });
     }
 
-    setArtistTracks([]);
-    setIsLoading(true);
-    try {
-      const result = await getLikedSongsByArtist(artistId);
-      if (session !== artistSessionRef.current) return; // artist changed mid-fetch
-      artistCacheRef.current[artistId] = result;
-      setArtistTracks(result);
-      setSavedTrackUris(prev => new Set([...prev, ...result.map(t => t.uri)]));
-    } catch (err) {
-      console.error('Failed to load liked songs by artist:', err);
-      if (session === artistSessionRef.current) setArtistTracks([]);
-    } finally {
-      if (session === artistSessionRef.current) setIsLoading(false);
+    // Saved subsection (slow — liked songs by artist). Has its own loading flag
+    // so it can show a skeleton independently of Popular. All-liked, so seed hearts.
+    const savedCached = artistCacheRef.current[artistId];
+    if (savedCached) {
+      setArtistTracks(savedCached);
+      setIsLoadingArtistSaved(false);
+      setSavedTrackUris(prev => new Set([...prev, ...savedCached.map(t => t.uri)]));
+    } else {
+      setArtistTracks([]);
+      setIsLoadingArtistSaved(true);
+      fetchArtistSaved(artistId)
+        .then(result => {
+          if (session !== artistSessionRef.current) return;
+          setArtistTracks(result);
+          setSavedTrackUris(prev => new Set([...prev, ...result.map(t => t.uri)]));
+        })
+        .catch(err => { if (session === artistSessionRef.current) { console.error('Failed to load liked songs by artist:', err); setArtistTracks([]); } })
+        .finally(() => { if (session === artistSessionRef.current) setIsLoadingArtistSaved(false); });
     }
-  }, [currentArtistId]);
+  }, [currentArtistId, checkAndMergeSaved, fetchArtistTop, fetchArtistSaved]);
+
+  const setArtistSubsection = useCallback((sub: ArtistSubsection) => {
+    setArtistSubsectionState(sub);
+    artistSubsectionRef.current = sub;
+    try { localStorage.setItem(ARTIST_SUBSECTION_KEY, sub); } catch { /* ignore */ }
+    // No fetch needed: showArtist always kicks off both subsections' loads, so
+    // toggling the pill just switches which already-loading/loaded list is shown.
+  }, []);
+
+  // Warm both Artist-tab caches for an artist without opening or altering the
+  // panel. Called from MainAppPage's priority chain while a song plays. If the
+  // tab happens to be open on this artist, results are pushed into state too.
+  const prefetchArtist = useCallback((artistId: string) => {
+    if (!artistId) return;
+    if (artistTopCacheRef.current[artistId] && artistCacheRef.current[artistId]) return;
+    const session = artistSessionRef.current;
+    const liveForArtist = () =>
+      panelViewRef.current === 'artist' &&
+      currentArtistIdRef.current === artistId &&
+      session === artistSessionRef.current;
+
+    if (!artistTopCacheRef.current[artistId]) {
+      fetchArtistTop(artistId)
+        .then(result => { if (liveForArtist()) { setArtistTopTracks(result); checkAndMergeSaved(result); } })
+        .catch(() => { /* prefetch is best-effort */ });
+    }
+    if (!artistCacheRef.current[artistId]) {
+      fetchArtistSaved(artistId)
+        .then(result => {
+          if (liveForArtist()) {
+            setArtistTracks(result);
+            setIsLoadingArtistSaved(false);
+            setSavedTrackUris(prev => new Set([...prev, ...result.map(t => t.uri)]));
+          }
+        })
+        .catch(() => { /* prefetch is best-effort */ });
+    }
+  }, [fetchArtistTop, fetchArtistSaved, checkAndMergeSaved]);
 
   // If the now-playing song (and thus its artist) changes while the Artist tab
   // is open, refetch so the tab follows the current artist. Clicking the tab
@@ -551,6 +678,16 @@ export function useTracklistPanel(
   }, [likedHasMore, fetchLikedSongsPage]);
 
   const selectTrack = useCallback(async (trackUri: string) => {
+    // Prefetch the picked track's lyrics immediately — overlaps the LRCLIB
+    // lookup with Spotify's slow play-confirmation round-trip. The row lives in
+    // whichever list backs the active view.
+    const picked =
+      tracksRef.current.find(t => t.uri === trackUri) ||
+      likedTracksRef.current.find(t => t.uri === trackUri) ||
+      artistTracksRef.current.find(t => t.uri === trackUri) ||
+      artistTopTracksRef.current.find(t => t.uri === trackUri);
+    if (picked) onSelectPrefetchRef.current?.(picked);
+
     if (panelView === 'liked') {
       setSelectedTrackUri(trackUri);
       try {
@@ -584,14 +721,17 @@ export function useTracklistPanel(
       return;
     }
     if (panelView === 'artist') {
-      // Liked-by-artist tracks span many albums with no shared Spotify context,
-      // so play them as a URI list (like Liked Songs) targeting the most-recent
+      // Artist-tab tracks span many albums with no shared Spotify context, so
+      // play them as a URI list (like Liked Songs) targeting the most-recent
       // device for cold starts. No forced shuffle — this is a curated list the
-      // user is browsing in order.
+      // user is browsing in order. Window comes from the active subsection's list.
       setSelectedTrackUri(trackUri);
       try {
         const device = await getRecentDevice();
-        const allUris = artistTracksRef.current.map(t => t.uri);
+        const activeList = artistSubsectionRef.current === 'saved'
+          ? artistTracksRef.current
+          : artistTopTracksRef.current;
+        const allUris = activeList.map(t => t.uri);
         const startIdx = Math.max(0, allUris.indexOf(trackUri));
         const window = allUris.slice(startIdx, startIdx + 100);
         if (window.length > 1) {
@@ -700,6 +840,11 @@ export function useTracklistPanel(
     isOpen,
     isLoading,
     tracks: panelView === 'artist' ? artistTracks : panelView === 'liked' ? likedTracks : tracks,
+    artistTopTracks,
+    isLoadingArtistSaved,
+    artistSubsection,
+    setArtistSubsection,
+    prefetchArtist,
     selectedTrackUri,
     panelView,
     isContextPlaylistLarge,
