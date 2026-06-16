@@ -30,9 +30,9 @@ All state lives in hooks composed in `MainAppPage`:
 - **`useTrackTransition`** — 9-stage animation state machine (`TransitionStage` enum in `src/types/player.ts`): `empty → jacket-enter → disc-emerge → disc-center → disc-rest → disc-place → playing/paused/eject`. Transitions advance via `setTimeout` timed to CSS animation durations. Same-album track changes skip the swap animation and update the disc label in place.
 - **`useDiscScrub`** — Pointer/touch event handler for rotating the disc to seek; throttles Spotify seek API calls to 300ms minimum. Full-rotation thresholds trigger skip-next / skip-back.
 - **`usePlayerColors`** — LocalStorage-backed color state for the turntable base and tonearm. Material presets (wood/aluminum/silver/gold) and per-target favorite swatches.
-- **`useArtBaseSettings`** — LocalStorage-backed toggle for the "album-art-driven base" mode, which replaces the manually picked `baseColor` with a darkened dominant + gradient derived from the current album art.
-- **`useLyrics`** — Fetches time-synced lyrics from [LRCLIB](https://lrclib.net) and parses LRC format via `src/utils/lrcParser.ts`. Results are cached per-track to avoid refetching.
-- **`useLyricsSettings`** — LocalStorage-backed toggle (`enabled`) and position (`'flank'` = both sides of the jacket, `'right'` = jacket left-anchored and lyrics fill the right half).
+- **`useArtBaseSettings`** — LocalStorage-backed toggles (under one storage key) for two independent "album-art-driven" modes: `baseEnabled` replaces the manually picked `baseColor`/`baseBackground` with a darkened dominant + gradient derived from the current album art; `armEnabled` replaces the manually picked `tonearmColor` with the same art-derived dominant (`busyDominant`). Both null out their respective material preset while active. Picking any color/material/favorite for a target turns its art mode off (handled in `MainAppPage`). Legacy single-flag storage (`{ enabled }`) migrates to `baseEnabled` on load.
+- **`useLyrics`** — Fetches time-synced lyrics from [LRCLIB](https://lrclib.net) and parses LRC format via `src/utils/lrcParser.ts`. Results are cached per-track to avoid refetching. LRCLIB data is **line-synced only** (no per-word timestamps).
+- **`useLyricsSettings`** — LocalStorage-backed toggle (`enabled`), position (`'flank'` = both sides of the jacket, `'right'` = jacket left-anchored and lyrics fill the right half), and `colorful` (the Colorful Lyrics karaoke mode — see below).
 - **`useTracklistPanel`** — The panel surface below the record player. Owns:
   - The `panelView` tab state: `'album' | 'library' | 'playlist' | 'queue' | 'liked'`.
   - Per-context track fetching with a per-URI cache (album, playlist). Queue and Liked Songs are never cached.
@@ -74,10 +74,21 @@ The redirect URI in `.env` / `.env.production` must match what is registered in 
 K-means-style clustering on a downsampled copy of the album art produces:
 - `primary` / `secondary` / `accent` / `dark` — drive the `RoomScene` room-background gradient.
 - `vibrantAccent` — used to tint the currently-playing track row and the active tab underline in the panel (via `pickTracklistAccentColor`).
-- `busyGradient` / `busyDominant` — feed the optional album-art-driven turntable base when `useArtBaseSettings` is enabled.
+- `busyGradient` / `busyDominant` — feed the optional album-art-driven turntable base **and** tonearm when the corresponding `useArtBaseSettings` toggle is enabled. `busyDominant` is emitted as an `rgb(...)` string; `Tonearm.tsx`'s `darkenColor` helper accepts both `#hex` and `rgb()` so the art-driven arm still gets its per-section shading (counterweight/cartridge/pivot-inner darker than the body).
+- `lyricColors` — a diverse, brightened-for-legibility palette (1–5 colors) built from the same k-means clusters as `busyGradient`, used by Colorful Lyrics. Saturated clusters are preferred (grays are weak word colors), but a **grayscale album** (no saturated clusters) falls back to the album's *own* gray/silver/white tones — not a generic rainbow — so the lyrics still match the art. Brightening (via the `brighten` helper, hue-preserving brightness floor) keeps words readable on the dark lyric overlay. Only falls back to `DEFAULT_COLORS.lyricColors` if the art yields no clusters at all.
 
 Called from `MainAppPage` when `track.id` changes.
 
+### Colorful Lyrics (`src/components/LyricsDisplay.tsx`)
+
+When `useLyricsSettings`' `colorful` toggle is on, the active lyric line renders word-by-word with a karaoke **progressive reveal** instead of a single white string:
+- Each word is a `<span class="lyric-word">` colored from `gradientColors.lyricColors` (cycled by index). State classes drive the reveal: `--sung` (full color), `--current` (brightest + glow + slight scale), `--upcoming` (dimmed white).
+- Because LRCLIB has no per-word timing, the active word is **interpolated**: `lrcParser.findCurrentLineWindow` returns the line's `[startMs, endMs)`, and the duration is distributed across words proportional to character length (`wordEndFractions`). The active word index updates in the existing `requestAnimationFrame` loop, only setting state when it changes.
+- Timing tuning: `LYRIC_WORD_LEAD_MS` in `config.ts` is a global look-ahead that shifts the whole reveal earlier (raise it if words light up late). The per-word distribution itself is the `wordEndFractions` weighting in `LyricsDisplay.tsx`.
+- All words of a panel are wrapped in a single `.lyric-line` span so the flex-based `.lyric-panel` sees one flex item — preserving inter-word spaces and wrapping (rendering raw word `<span>`s directly into the flex panel makes each word/space its own flex item, which collapses spaces and overlaps words).
+- Flank mode splits the word array at the word boundary nearest the line's character midpoint; right mode renders all words in the right panel. The non-colorful path is unchanged.
+- The word color/glow transition uses `--lyric-word-fade-duration` (from `LYRIC_WORD_FADE_DURATION` in `config.ts`).
+
 ### Settings (`src/components/ColorCustomizer.tsx`)
 
-A single gear-icon menu in the bottom bar consolidates all user-configurable settings: base/tonearm color pickers, material presets, favorite swatch slots, album-art-driven base toggle, lyrics on/off, lyrics position (flank/right), and logout. Most settings are persisted via the LocalStorage-backed hooks above.
+A single gear-icon menu in the bottom bar consolidates all user-configurable settings: base/tonearm color pickers, material presets, favorite swatch slots, album-art-driven toggles (an "Album Art" preset tile shown in **both** the Base and Arm pickers), lyrics on/off, lyrics position (flank/right), Colorful Lyrics on/off, and logout. Most settings are persisted via the LocalStorage-backed hooks above.

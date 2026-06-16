@@ -24,7 +24,7 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
   const { stage, jacketTrack, discTrack, skipToPlatter } = useTrackTransition(track, isPlaying, isLoading);
   const [gradientColors, setGradientColors] = useState<ExtractedColors>(DEFAULT_COLORS);
   const { baseBackground, baseColor, baseMaterial, tonearmColor, tonearmMaterial, baseFavorites, tonearmFavorites, setBaseColor, setTonearmColor, applyMaterialPreset, addFavorite } = usePlayerColors();
-  const { enabled: lyricsEnabled, position: lyricsPosition, setEnabled: setLyricsEnabled, setPosition: setLyricsPosition } = useLyricsSettings();
+  const { enabled: lyricsEnabled, position: lyricsPosition, colorful: lyricsColorful, setEnabled: setLyricsEnabled, setPosition: setLyricsPosition, setColorful: setLyricsColorful } = useLyricsSettings();
   const { lines: lyricLines } = useLyrics(track, lyricsEnabled);
   const { baseEnabled: artBaseEnabled, armEnabled: artArmEnabled, setBaseEnabled: setArtBaseEnabled, setArmEnabled: setArtArmEnabled } = useArtBaseSettings();
 
@@ -135,6 +135,7 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
           tonearmFavorites={tonearmFavorites}
           lyricsEnabled={lyricsEnabled}
           lyricsPosition={lyricsPosition}
+          lyricsColorful={lyricsColorful}
           artBaseEnabled={artBaseEnabled}
           artArmEnabled={artArmEnabled}
           artBaseGradient={gradientColors.busyGradient}
@@ -145,6 +146,7 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
           onAddFavorite={addFavorite}
           onSetLyricsEnabled={setLyricsEnabled}
           onSetLyricsPosition={setLyricsPosition}
+          onSetLyricsColorful={setLyricsColorful}
           onSetArtBaseEnabled={setArtBaseEnabled}
           onSetArtArmEnabled={setArtArmEnabled}
           onLogout={onLogout}
@@ -208,6 +210,8 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
                 progressMs={progressMs}
                 isPlaying={isPlaying}
                 position={lyricsPosition}
+                colorful={lyricsColorful}
+                palette={gradientColors.lyricColors}
               />
             }
           />

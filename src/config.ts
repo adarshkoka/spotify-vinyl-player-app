@@ -29,6 +29,18 @@ export const EJECT_DURATION = 300;
 /** Jacket pop-up lift/squash transition on hover and press. */
 export const JACKET_HOVER_DURATION = 200;
 
+/** Colorful-lyrics word color/glow fade as the karaoke reveal advances. */
+export const LYRIC_WORD_FADE_DURATION = 250;
+
+/**
+ * Karaoke look-ahead (ms) for Colorful Lyrics. Because LRCLIB only timestamps
+ * whole lines, each word's "sung" moment is interpolated within the line; this
+ * offset shifts the whole reveal earlier so a word lights up slightly *before*
+ * it's sung rather than after. Increase if words feel late, decrease (or go
+ * negative) if they feel early. Reasonable range: 0–400.
+ */
+export const LYRIC_WORD_LEAD_MS = 300;
+
 // ─── Playback polling ───────────────────────────────────────────────────────
 
 /**
@@ -110,6 +122,7 @@ export function applyCssVars(): void {
   root.style.setProperty('--disc-place-duration', `${DISC_PLACE_DURATION}ms`);
   root.style.setProperty('--eject-duration', `${EJECT_DURATION}ms`);
   root.style.setProperty('--jacket-hover-duration', `${JACKET_HOVER_DURATION}ms`);
+  root.style.setProperty('--lyric-word-fade-duration', `${LYRIC_WORD_FADE_DURATION}ms`);
   root.style.setProperty('--vinyl-spin-duration', `${VINYL_SPIN_DURATION}ms`);
   root.style.setProperty('--gradient-transition-duration', `${GRADIENT_TRANSITION_DURATION}ms`);
 

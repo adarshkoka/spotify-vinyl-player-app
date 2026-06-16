@@ -8,6 +8,8 @@ export interface ExtractedColors {
   busyGradient: string;
   /** Dominant cluster color, darkened for use as the solid baseColor when ART is on. */
   busyDominant: string;
+  /** Diverse, brightened-for-legibility palette (1–5 colors) used for Colorful Lyrics. */
+  lyricColors: string[];
 }
 
 const DEFAULT_BUSY_GRADIENT = 'linear-gradient(135deg, #2e2e2e 0%, #222 35%, #1a1a1a 70%, #151515 100%)';
@@ -20,6 +22,7 @@ const DEFAULT_COLORS: ExtractedColors = {
   vibrantAccent: '#1DB954',
   busyGradient: DEFAULT_BUSY_GRADIENT,
   busyDominant: '#222222',
+  lyricColors: ['#7ec8ff', '#ff9ecb', '#9affc4', '#ffd76e', '#c9a8ff'],
 };
 
 /**
@@ -95,6 +98,17 @@ export function extractColors(imageUrl: string): Promise<ExtractedColors> {
         .join(', ')})`;
       const busyDominant = toRgb(busyDarkened[0] ?? [34, 34, 34]);
 
+      // Colorful-lyrics palette: same clusters as the gradient, deduped for
+      // diversity and brightened so words stay legible on the dark overlay.
+      // Prefer saturated clusters (grays are weak word colors), but for a
+      // grayscale album — where no saturated clusters exist — fall back to the
+      // album's OWN grayscale tones rather than a generic rainbow, so the lyrics
+      // match the art (white/silver) instead of inventing colors.
+      const colorfulRaw = busyRaw.filter(c => saturation(c) >= 0.2);
+      const lyricSource = colorfulRaw.length ? colorfulRaw : busyRaw;
+      const lyricColors = selectDiverse(lyricSource, 5)
+        .map(c => toRgb(brighten(c, 150)));
+
       resolve({
         dark: toRgb(colors[0]),
         primary: toRgb(colors[1] || colors[0]),
@@ -103,6 +117,7 @@ export function extractColors(imageUrl: string): Promise<ExtractedColors> {
         vibrantAccent: toRgb(brightestRaw || colors[3] || colors[0]),
         busyGradient,
         busyDominant,
+        lyricColors: lyricColors.length ? lyricColors : DEFAULT_COLORS.lyricColors,
       });
     };
 
@@ -221,6 +236,22 @@ function brightness([r, g, b]: [number, number, number]): number {
 
 function darken([r, g, b]: [number, number, number], factor: number): [number, number, number] {
   return [Math.round(r * factor), Math.round(g * factor), Math.round(b * factor)];
+}
+
+/**
+ * Scale a color up toward a minimum perceived brightness so it stays legible on
+ * a dark background, preserving hue. Colors already brighter than the floor are
+ * returned unchanged. Channels are clamped to 255.
+ */
+function brighten(color: [number, number, number], minBrightness: number): [number, number, number] {
+  const b = brightness(color);
+  if (b >= minBrightness || b === 0) return color;
+  const factor = minBrightness / b;
+  return [
+    Math.min(255, Math.round(color[0] * factor)),
+    Math.min(255, Math.round(color[1] * factor)),
+    Math.min(255, Math.round(color[2] * factor)),
+  ];
 }
 
 function toRgb([r, g, b]: [number, number, number]): string {

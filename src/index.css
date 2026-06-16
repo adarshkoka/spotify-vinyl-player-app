@@ -1082,6 +1082,42 @@
   opacity: 1;
 }
 
+/* Colorful Lyrics — per-word karaoke reveal. Each word carries its palette color
+   in --word-color; the state class decides how much of it shows. The line wrapper
+   keeps all words as one flex item so spaces and wrapping behave like plain text. */
+.lyric-line {
+  min-width: 0;
+}
+
+.lyric-word {
+  display: inline-block;
+  transition:
+    color var(--lyric-word-fade-duration, 250ms) ease,
+    opacity var(--lyric-word-fade-duration, 250ms) ease,
+    text-shadow var(--lyric-word-fade-duration, 250ms) ease,
+    transform var(--lyric-word-fade-duration, 250ms) ease;
+}
+
+/* Already sung — full palette color. */
+.lyric-word--sung {
+  color: var(--word-color, #ffffff);
+  opacity: 0.92;
+}
+
+/* Currently being sung — brightest, with a glow and slight lift. */
+.lyric-word--current {
+  color: var(--word-color, #ffffff);
+  opacity: 1;
+  text-shadow: 0 0 8px var(--word-color, rgba(255, 255, 255, 0.7));
+  transform: translateY(-1px) scale(1.06);
+}
+
+/* Not yet reached — dimmed, neutral. */
+.lyric-word--upcoming {
+  color: rgba(255, 255, 255, 0.35);
+  opacity: 0.85;
+}
+
 .lyric-panel--left {
   left: 0;
   right: calc(50% + 80px);

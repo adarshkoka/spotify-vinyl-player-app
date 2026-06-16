@@ -12,6 +12,7 @@ interface ColorCustomizerProps {
   tonearmFavorites: string[];
   lyricsEnabled: boolean;
   lyricsPosition: 'flank' | 'right';
+  lyricsColorful: boolean;
   artBaseEnabled: boolean;
   artArmEnabled: boolean;
   artBaseGradient: string;
@@ -22,6 +23,7 @@ interface ColorCustomizerProps {
   onAddFavorite: (target: 'base' | 'tonearm', color: string) => void;
   onSetLyricsEnabled: (enabled: boolean) => void;
   onSetLyricsPosition: (position: 'flank' | 'right') => void;
+  onSetLyricsColorful: (colorful: boolean) => void;
   onSetArtBaseEnabled: (enabled: boolean) => void;
   onSetArtArmEnabled: (enabled: boolean) => void;
   onLogout: () => void;
@@ -46,6 +48,7 @@ const ColorCustomizer: React.FC<ColorCustomizerProps> = ({
   tonearmFavorites,
   lyricsEnabled,
   lyricsPosition,
+  lyricsColorful,
   artBaseEnabled,
   artArmEnabled,
   artBaseGradient,
@@ -56,6 +59,7 @@ const ColorCustomizer: React.FC<ColorCustomizerProps> = ({
   onAddFavorite,
   onSetLyricsEnabled,
   onSetLyricsPosition,
+  onSetLyricsColorful,
   onSetArtBaseEnabled,
   onSetArtArmEnabled,
   onLogout,
@@ -231,6 +235,20 @@ const ColorCustomizer: React.FC<ColorCustomizerProps> = ({
                   aria-hidden="true"
                 />
                 <span className="settings-row-label">Lyrics on Right</span>
+              </button>
+
+              <button
+                type="button"
+                className="settings-row"
+                onClick={() => onSetLyricsColorful(!lyricsColorful)}
+                role="switch"
+                aria-checked={lyricsColorful}
+              >
+                <span
+                  className={`lyr-radio${lyricsColorful ? ' active' : ''}`}
+                  aria-hidden="true"
+                />
+                <span className="settings-row-label">Colorful Lyrics</span>
               </button>
 
               <button

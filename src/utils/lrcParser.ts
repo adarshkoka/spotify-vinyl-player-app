@@ -35,6 +35,38 @@ export function findCurrentLine(lines: LyricLine[], positionMs: number): LyricLi
   return current;
 }
 
+/** Index of the active line for a playback position, or -1 if before the first line. */
+export function findCurrentLineIndex(lines: LyricLine[], positionMs: number): number {
+  if (!lines.length || positionMs < lines[0].ms) return -1;
+  let lo = 0;
+  let hi = lines.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (lines[mid].ms <= positionMs) lo = mid;
+    else hi = mid - 1;
+  }
+  return lo;
+}
+
+/** Fallback display duration (ms) for the final line, which has no following timestamp. */
+const LAST_LINE_FALLBACK_MS = 4000;
+
+/**
+ * The active line's text and its [startMs, endMs) time window. `endMs` is the
+ * next line's timestamp (or a fallback for the last line). Returns null when no
+ * line is active or the active line is blank.
+ */
+export function findCurrentLineWindow(
+  lines: LyricLine[],
+  positionMs: number,
+): { text: string; startMs: number; endMs: number } | null {
+  const i = findCurrentLineIndex(lines, positionMs);
+  if (i === -1 || !lines[i].text) return null;
+  const startMs = lines[i].ms;
+  const endMs = i + 1 < lines.length ? lines[i + 1].ms : startMs + LAST_LINE_FALLBACK_MS;
+  return { text: lines[i].text, startMs, endMs };
+}
+
 export function splitLineHalves(text: string): { left: string; right: string } {
   if (!text) return { left: '', right: '' };
   const mid = text.length / 2;

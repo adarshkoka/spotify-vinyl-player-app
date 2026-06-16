@@ -7,11 +7,13 @@ export type LyricsPosition = 'flank' | 'right';
 interface StoredLyricsSettings {
   enabled: boolean;
   position: LyricsPosition;
+  colorful: boolean;
 }
 
 const DEFAULTS: StoredLyricsSettings = {
   enabled: false,
   position: 'right',
+  colorful: false,
 };
 
 function load(): StoredLyricsSettings {
@@ -51,10 +53,20 @@ export function useLyricsSettings() {
     });
   }, []);
 
+  const setColorful = useCallback((colorful: boolean) => {
+    setState(prev => {
+      const next: StoredLyricsSettings = { ...prev, colorful };
+      save(next);
+      return next;
+    });
+  }, []);
+
   return {
     enabled: state.enabled,
     position: state.position,
+    colorful: state.colorful,
     setEnabled,
     setPosition,
+    setColorful,
   };
 }
