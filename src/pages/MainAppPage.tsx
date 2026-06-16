@@ -26,18 +26,25 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
   const { baseBackground, baseColor, baseMaterial, tonearmColor, tonearmMaterial, baseFavorites, tonearmFavorites, setBaseColor, setTonearmColor, applyMaterialPreset, addFavorite } = usePlayerColors();
   const { enabled: lyricsEnabled, position: lyricsPosition, setEnabled: setLyricsEnabled, setPosition: setLyricsPosition } = useLyricsSettings();
   const { lines: lyricLines } = useLyrics(track, lyricsEnabled);
-  const { enabled: artBaseEnabled, setEnabled: setArtBaseEnabled } = useArtBaseSettings();
+  const { baseEnabled: artBaseEnabled, armEnabled: artArmEnabled, setBaseEnabled: setArtBaseEnabled, setArmEnabled: setArtArmEnabled } = useArtBaseSettings();
 
   const effectiveBaseBackground = artBaseEnabled ? gradientColors.busyGradient : baseBackground;
   const effectiveBaseColor = artBaseEnabled ? gradientColors.busyDominant : baseColor;
   const effectiveBaseMaterial = artBaseEnabled ? null : baseMaterial;
+  const effectiveTonearmColor = artArmEnabled ? gradientColors.busyDominant : tonearmColor;
+  const effectiveTonearmMaterial = artArmEnabled ? null : tonearmMaterial;
 
   const handleSetBaseColor = (color: string) => {
     setArtBaseEnabled(false);
     setBaseColor(color);
   };
+  const handleSetTonearmColor = (color: string) => {
+    setArtArmEnabled(false);
+    setTonearmColor(color);
+  };
   const handleApplyMaterialPreset = (target: 'base' | 'tonearm', preset: 'wood' | 'aluminum' | 'silver' | 'gold') => {
     if (target === 'base') setArtBaseEnabled(false);
+    else setArtArmEnabled(false);
     applyMaterialPreset(target, preset);
   };
   const { isOpen: isTracklistOpen, isLoading: isTracklistLoading, tracks: tracklistTracks, selectedTrackUri, panelView, isSupportedContext, savedTrackUris, isLoadingMoreLiked, likedHasMore, libraryPlaylists, isLoadingLibrary, toggleOpen: toggleTracklist, close: closeTracklist, selectTrack, showAlbum, showLibrary, showPlaylist, showQueue, showLikedSongs, loadMoreLikedSongs, addToQueue, saveTrack } = useTracklistPanel(contextUri, contextType, track?.album ?? null, track?.uri, refetchPlayback);
@@ -123,20 +130,23 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
           baseColor={baseColor}
           tonearmColor={tonearmColor}
           baseMaterial={effectiveBaseMaterial}
-          tonearmMaterial={tonearmMaterial}
+          tonearmMaterial={effectiveTonearmMaterial}
           baseFavorites={baseFavorites}
           tonearmFavorites={tonearmFavorites}
           lyricsEnabled={lyricsEnabled}
           lyricsPosition={lyricsPosition}
           artBaseEnabled={artBaseEnabled}
+          artArmEnabled={artArmEnabled}
           artBaseGradient={gradientColors.busyGradient}
+          artArmColor={gradientColors.busyDominant}
           onSetBaseColor={handleSetBaseColor}
-          onSetTonearmColor={setTonearmColor}
+          onSetTonearmColor={handleSetTonearmColor}
           onApplyMaterialPreset={handleApplyMaterialPreset}
           onAddFavorite={addFavorite}
           onSetLyricsEnabled={setLyricsEnabled}
           onSetLyricsPosition={setLyricsPosition}
           onSetArtBaseEnabled={setArtBaseEnabled}
+          onSetArtArmEnabled={setArtArmEnabled}
           onLogout={onLogout}
         />
       </div>
@@ -157,8 +167,8 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
             baseBackground={effectiveBaseBackground}
             baseColor={effectiveBaseColor}
             baseMaterial={effectiveBaseMaterial}
-            tonearmColor={tonearmColor}
-            tonearmMaterial={tonearmMaterial}
+            tonearmColor={effectiveTonearmColor}
+            tonearmMaterial={effectiveTonearmMaterial}
             isScrubbing={isScrubbing}
             scrubAngle={scrubAngle}
             onDiscPointerDown={scrubHandlers.onPointerDown}

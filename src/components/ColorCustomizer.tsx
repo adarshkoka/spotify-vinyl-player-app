@@ -13,7 +13,9 @@ interface ColorCustomizerProps {
   lyricsEnabled: boolean;
   lyricsPosition: 'flank' | 'right';
   artBaseEnabled: boolean;
+  artArmEnabled: boolean;
   artBaseGradient: string;
+  artArmColor: string;
   onSetBaseColor: (color: string) => void;
   onSetTonearmColor: (color: string) => void;
   onApplyMaterialPreset: (target: 'base' | 'tonearm', preset: NonNullable<MaterialPreset>) => void;
@@ -21,6 +23,7 @@ interface ColorCustomizerProps {
   onSetLyricsEnabled: (enabled: boolean) => void;
   onSetLyricsPosition: (position: 'flank' | 'right') => void;
   onSetArtBaseEnabled: (enabled: boolean) => void;
+  onSetArtArmEnabled: (enabled: boolean) => void;
   onLogout: () => void;
 }
 
@@ -44,7 +47,9 @@ const ColorCustomizer: React.FC<ColorCustomizerProps> = ({
   lyricsEnabled,
   lyricsPosition,
   artBaseEnabled,
+  artArmEnabled,
   artBaseGradient,
+  artArmColor,
   onSetBaseColor,
   onSetTonearmColor,
   onApplyMaterialPreset,
@@ -52,6 +57,7 @@ const ColorCustomizer: React.FC<ColorCustomizerProps> = ({
   onSetLyricsEnabled,
   onSetLyricsPosition,
   onSetArtBaseEnabled,
+  onSetArtArmEnabled,
   onLogout,
 }) => {
   const [panelOpen, setPanelOpen] = useState(false);
@@ -190,10 +196,12 @@ const ColorCustomizer: React.FC<ColorCustomizerProps> = ({
               >
                 <span
                   className="settings-row-icon color-btn"
-                  style={{ '--btn-color': tonearmColor } as React.CSSProperties}
+                  style={artArmEnabled
+                    ? { background: artArmColor }
+                    : ({ '--btn-color': tonearmColor } as React.CSSProperties)}
                   aria-hidden="true"
                 />
-                <span className="settings-row-label">Arm</span>
+                <span className="settings-row-label">Tonearm</span>
                 <span className="settings-row-chevron" aria-hidden="true">›</span>
               </button>
 
@@ -280,6 +288,20 @@ const ColorCustomizer: React.FC<ColorCustomizerProps> = ({
                     <span
                       className="material-preset-swatch art-preset-swatch"
                       style={{ background: artBaseGradient }}
+                    />
+                    <span className="material-preset-label">Album Art</span>
+                  </button>
+                )}
+                {view === 'tonearm' && (
+                  <button
+                    type="button"
+                    className={`material-preset-btn art-preset${artArmEnabled ? ' active' : ''}`}
+                    onClick={() => onSetArtArmEnabled(!artArmEnabled)}
+                    title="Album art color"
+                  >
+                    <span
+                      className="material-preset-swatch art-preset-swatch"
+                      style={{ background: artArmColor }}
                     />
                     <span className="material-preset-label">Album Art</span>
                   </button>

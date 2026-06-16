@@ -15,12 +15,24 @@ function getTonearmClass(stage: TransitionStage): string {
   return 'tonearm-resting';
 }
 
-function darkenHex(hex: string, factor: number): string {
-  const cleaned = hex.replace('#', '');
-  if (!/^[0-9a-fA-F]{6}$/.test(cleaned)) return hex;
-  const r = Math.round(parseInt(cleaned.slice(0, 2), 16) * factor);
-  const g = Math.round(parseInt(cleaned.slice(2, 4), 16) * factor);
-  const b = Math.round(parseInt(cleaned.slice(4, 6), 16) * factor);
+/** Darken any #hex or rgb(...) color by a multiplier. Returns the input unchanged if unparseable. */
+function darkenColor(color: string, factor: number): string {
+  let r: number, g: number, b: number;
+  const hex = color.replace('#', '');
+  if (/^[0-9a-fA-F]{6}$/.test(hex)) {
+    r = parseInt(hex.slice(0, 2), 16);
+    g = parseInt(hex.slice(2, 4), 16);
+    b = parseInt(hex.slice(4, 6), 16);
+  } else {
+    const m = color.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+    if (!m) return color;
+    r = parseInt(m[1], 10);
+    g = parseInt(m[2], 10);
+    b = parseInt(m[3], 10);
+  }
+  r = Math.round(r * factor);
+  g = Math.round(g * factor);
+  b = Math.round(b * factor);
   return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
 
@@ -44,7 +56,7 @@ const Tonearm: React.FC<TonearmProps> = ({
 
   const palette = tonearmMaterial ? MATERIAL_PALETTE[tonearmMaterial] : null;
   const fill      = palette?.light ?? tonearmColor;
-  const fillDark  = palette?.dark  ?? darkenHex(tonearmColor, 0.4);
+  const fillDark  = palette?.dark  ?? darkenColor(tonearmColor, 0.4);
   const edgeColor = palette?.edge  ?? 'rgba(255,255,255,0.1)';
 
   /* Which sheen gradient to use on the arm body tube */
