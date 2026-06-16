@@ -1,8 +1,17 @@
+import { BG_GRADIENT_MIN_BAND } from '../config';
+
 export interface ExtractedColors {
   primary: string;
   secondary: string;
   accent: string;
   dark: string;
+  /**
+   * Pre-built room background gradient. Each album-art color's band is sized by
+   * its cluster population, so a dominant color fills most of the screen and
+   * minority colors shrink to thin edge accents. Colors are ordered by
+   * population so same-family shades (e.g. all the blues) stay together.
+   */
+  backgroundGradient: string;
   vibrantAccent: string;
   /** Busier, less-darkened gradient derived from the same clusters — used for the player base. */
   busyGradient: string;
@@ -14,11 +23,15 @@ export interface ExtractedColors {
 
 const DEFAULT_BUSY_GRADIENT = 'linear-gradient(135deg, #2e2e2e 0%, #222 35%, #1a1a1a 70%, #151515 100%)';
 
+/** No-art fallback for the room background — kept in sync with RoomScene's default. */
+const DEFAULT_BACKGROUND_GRADIENT = 'linear-gradient(160deg, #1a1a2e 0%, #16213e 30%, #0f3460 60%, #0a0a1a 100%)';
+
 const DEFAULT_COLORS: ExtractedColors = {
   primary: '#1a1a2e',
   secondary: '#16213e',
   accent: '#0f3460',
   dark: '#0a0a1a',
+  backgroundGradient: DEFAULT_BACKGROUND_GRADIENT,
   vibrantAccent: '#1DB954',
   busyGradient: DEFAULT_BUSY_GRADIENT,
   busyDominant: '#222222',
@@ -67,17 +80,32 @@ export function extractColors(imageUrl: string): Promise<ExtractedColors> {
       // Sort clusters by population (largest first), then pick diverse ones
       clusters.sort((a, b) => b.count - a.count);
 
-      // Get the top colors, ensuring diversity by filtering near-duplicates
+      // Get the top colors, ensuring diversity by filtering near-duplicates.
+      // Pair each selected color back to its cluster population so the room
+      // background can be weighted by how much of the cover each color covers
+      // (selectDiverse passes the center references through unchanged).
       const diverse = selectDiverse(clusters.map(c => c.center), 4);
+      const diverseWithCount = diverse.map(center => ({
+        center,
+        count: clusters.find(cl => cl.center === center)?.count ?? 0,
+      }));
 
-      // Sort by brightness: darkest first
-      diverse.sort((a, b) => brightness(a) - brightness(b));
+      // Sort by brightness: darkest first (drives the dark→accent fields below)
+      diverseWithCount.sort((a, b) => brightness(a.center) - brightness(b.center));
 
       // Brightest undarkened color — used for foreground accents
-      const brightestRaw = diverse[diverse.length - 1];
+      const brightestRaw = diverseWithCount[diverseWithCount.length - 1]?.center;
 
       // Darken all colors to be suitable as backgrounds
-      const colors = diverse.map(c => darken(c, 0.35));
+      const colors = diverseWithCount.map(c => darken(c.center, 0.35));
+
+      // Proportion-weighted room background: each color's band is sized by its
+      // cluster population (a dominant color fills most of the screen) and the
+      // colors are ordered by population so same-family shades stay together and
+      // rare colors land at the far edge. See buildBackgroundGradient.
+      const backgroundGradient = buildBackgroundGradient(
+        colors.map((color, i) => ({ color, count: diverseWithCount[i].count }))
+      );
 
       // Build the "busy" base gradient using all kMeans clusters by population.
       // Less darkening (0.6 vs 0.35) keeps it vivid against the dark background,
@@ -120,6 +148,7 @@ export function extractColors(imageUrl: string): Promise<ExtractedColors> {
         primary: toRgb(colors[1] || colors[0]),
         secondary: toRgb(colors[2] || colors[1] || colors[0]),
         accent: toRgb(colors[3] || colors[2] || colors[1] || colors[0]),
+        backgroundGradient,
         vibrantAccent: toRgb(brightestRaw || colors[3] || colors[0]),
         busyGradient,
         busyDominant,
@@ -196,6 +225,53 @@ function kMeans(
   }
 
   return centers.map((center, i) => ({ center, count: counts[i] }));
+}
+
+/**
+ * Build the room background gradient, sizing each color's band by its cluster
+ * population so a dominant color fills most of the screen while minority colors
+ * shrink to thin edge accents. Colors are ordered by population (most common
+ * first) so same-family shades stay together and rare colors land at the far
+ * (bottom) edge. A per-color minimum band (BG_GRADIENT_MIN_BAND) keeps minority
+ * colors from vanishing.
+ *
+ * Each color gets a single stop at the center of its proportional band, with the
+ * first/last colors anchored to 0%/100%, so it stays a smooth blend (a balanced
+ * cover ≈ an even multi-color gradient) rather than hard color blocks.
+ */
+function buildBackgroundGradient(
+  entries: { color: [number, number, number]; count: number }[]
+): string {
+  if (entries.length === 0) return DEFAULT_BACKGROUND_GRADIENT;
+  if (entries.length === 1) {
+    const c = toRgb(entries[0].color);
+    return `linear-gradient(160deg, ${c} 0%, ${c} 100%)`;
+  }
+
+  // Most populous first → same-family shades group together, rare colors trail.
+  const ordered = [...entries].sort((a, b) => b.count - a.count);
+  const n = ordered.length;
+  const total = ordered.reduce((sum, e) => sum + e.count, 0);
+
+  // Band widths: floor each color, distribute the rest by population share.
+  const minBand = Math.min(BG_GRADIENT_MIN_BAND, 100 / n);
+  const remaining = 100 - minBand * n;
+  const widths = ordered.map(e =>
+    minBand + (total > 0 ? (e.count / total) * remaining : remaining / n)
+  );
+
+  // Each color sits at the center of its band; the ends snap to 0% and 100%.
+  const stops: number[] = [];
+  let cursor = 0;
+  for (let i = 0; i < n; i++) {
+    const center = cursor + widths[i] / 2;
+    stops.push(i === 0 ? 0 : i === n - 1 ? 100 : center);
+    cursor += widths[i];
+  }
+
+  return `linear-gradient(160deg, ${ordered
+    .map((e, i) => `${toRgb(e.color)} ${Math.round(stops[i])}%`)
+    .join(', ')})`;
 }
 
 function selectDiverse(

@@ -13,7 +13,7 @@ interface StoredLyricsSettings {
 const DEFAULTS: StoredLyricsSettings = {
   enabled: false,
   position: 'right',
-  colorful: false,
+  colorful: true,
 };
 
 function load(): StoredLyricsSettings {
@@ -39,7 +39,11 @@ export function useLyricsSettings() {
 
   const setEnabled = useCallback((enabled: boolean) => {
     setState(prev => {
-      const next: StoredLyricsSettings = { ...prev, enabled };
+      // Turning lyrics on auto-enables its dependent sub-settings (lyrics on the
+      // right + colorful), filling in their radios; turning off just disables.
+      const next: StoredLyricsSettings = enabled
+        ? { enabled: true, position: 'right', colorful: true }
+        : { ...prev, enabled: false };
       save(next);
       return next;
     });

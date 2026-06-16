@@ -6,6 +6,8 @@ interface GradientColors {
   secondary: string;
   accent: string;
   dark: string;
+  /** Pre-built, proportion-weighted gradient from the album art (preferred). */
+  backgroundGradient?: string;
 }
 
 interface RoomSceneProps {
@@ -16,6 +18,9 @@ interface RoomSceneProps {
 }
 
 function toGradient(c: GradientColors): string {
+  // Prefer the proportion-weighted gradient built from the album art; fall back
+  // to the even four-color layout if it isn't available.
+  if (c.backgroundGradient) return c.backgroundGradient;
   return `linear-gradient(160deg, ${c.dark} 0%, ${c.primary} 30%, ${c.secondary} 60%, ${c.accent} 100%)`;
 }
 

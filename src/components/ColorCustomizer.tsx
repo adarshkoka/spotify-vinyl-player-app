@@ -225,10 +225,11 @@ const ColorCustomizer: React.FC<ColorCustomizerProps> = ({
 
               <button
                 type="button"
-                className="settings-row"
+                className={`settings-row${lyricsEnabled ? '' : ' settings-row--disabled'}`}
                 onClick={() => onSetLyricsPosition(lyricsPosition === 'right' ? 'flank' : 'right')}
                 role="switch"
                 aria-checked={lyricsPosition === 'right'}
+                disabled={!lyricsEnabled}
               >
                 <span
                   className={`lyr-radio${lyricsPosition === 'right' ? ' active' : ''}`}
@@ -239,16 +240,17 @@ const ColorCustomizer: React.FC<ColorCustomizerProps> = ({
 
               <button
                 type="button"
-                className="settings-row"
+                className={`settings-row${lyricsEnabled ? '' : ' settings-row--disabled'}`}
                 onClick={() => onSetLyricsColorful(!lyricsColorful)}
                 role="switch"
                 aria-checked={lyricsColorful}
+                disabled={!lyricsEnabled}
               >
                 <span
                   className={`lyr-radio${lyricsColorful ? ' active' : ''}`}
                   aria-hidden="true"
                 />
-                <span className="settings-row-label">Colorful Lyrics</span>
+                <span className="settings-row-label">Karaoke Mode</span>
               </button>
 
               <button

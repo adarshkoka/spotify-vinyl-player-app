@@ -39,7 +39,7 @@ export const LYRIC_WORD_FADE_DURATION = 250;
  * it's sung rather than after. Increase if words feel late, decrease (or go
  * negative) if they feel early. Reasonable range: 0–400.
  */
-export const LYRIC_WORD_LEAD_MS = 240;
+export const LYRIC_WORD_LEAD_MS = 210;
 
 /**
  * Estimated sung time (ms) per syllable for Colorful Lyrics. Each word's natural
@@ -98,6 +98,15 @@ export const VINYL_SPIN_DURATION = 1800;
 
 /** Duration (ms) for the room background gradient to transition between songs. */
 export const GRADIENT_TRANSITION_DURATION = 1500;
+
+/**
+ * Minimum band width (in %) each color gets in the proportion-weighted room
+ * background gradient. The gradient sizes every album-art color by how much of
+ * the cover it actually covers, so a dominant color fills most of the screen;
+ * this floor keeps a minority color visible as a thin edge accent instead of
+ * vanishing entirely. Higher = minority colors show more. (See colorExtractor.)
+ */
+export const BG_GRADIENT_MIN_BAND = 6;
 
 // ─── Disc scrubbing ─────────────────────────────────────────────────────────
 

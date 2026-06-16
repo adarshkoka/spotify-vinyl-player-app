@@ -1500,7 +1500,14 @@
   position: absolute;
   inset: 2px;
   border-radius: 50%;
-  background: #c8c8c8;
+  background: #b7e1a1;
+}
+
+/* Lyrics sub-settings are grayed out and non-interactive while Lyrics is off. */
+.settings-row--disabled {
+  opacity: 0.4;
+  pointer-events: none;
+  cursor: default;
 }
 
 /* Album-art preset swatch — background is set inline from artBaseGradient */
