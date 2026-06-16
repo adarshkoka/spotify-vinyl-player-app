@@ -4,6 +4,7 @@ import {
   getPlaylistTracks,
   getQueue,
   getLikedSongs,
+  getLikedSongsByArtist,
   getRecentDevice,
   getUserPlaylists,
   playTrackInContext,
@@ -17,7 +18,7 @@ import {
   type UserPlaylist,
 } from '../services/spotifyService';
 
-export type PanelView = 'album' | 'library' | 'playlist' | 'queue' | 'liked';
+export type PanelView = 'album' | 'library' | 'playlist' | 'queue' | 'liked' | 'artist';
 
 const LIKED_PAGE_SIZE = 50;
 
@@ -41,6 +42,7 @@ interface UseTracklistPanelReturn {
   showPlaylist: (playlistUri?: string) => void;
   showQueue: () => void;
   showLikedSongs: () => Promise<void>;
+  showArtist: () => Promise<void>;
   loadMoreLikedSongs: () => Promise<void>;
   addToQueue: (trackUri: string) => Promise<void>;
   saveTrack: (trackUri: string) => Promise<void>;
@@ -52,6 +54,7 @@ export function useTracklistPanel(
   fallbackAlbum?: { id: string; uri: string } | null,
   currentTrackUri?: string | null,
   refetchPlayback?: (options?: { untilTrackChanges?: boolean }) => Promise<void>,
+  currentArtistId?: string | null,
 ): UseTracklistPanelReturn {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -63,6 +66,10 @@ export function useTracklistPanel(
   // backs album/playlist/queue; `likedTracks` backs Liked Songs only.
   const [tracks, setTracks] = useState<ContextTrack[]>([]);
   const [likedTracks, setLikedTracks] = useState<ContextTrack[]>([]);
+  // Artist view (your liked songs by the now-playing artist) is split out for
+  // the same isolation reason as likedTracks — async writes from the artist
+  // catalog fetch must never bleed into another view's list.
+  const [artistTracks, setArtistTracks] = useState<ContextTrack[]>([]);
   const [selectedTrackUri, setSelectedTrackUri] = useState<string | null>(null);
   const [panelView, setPanelView] = useState<PanelView>('album');
   const [savedTrackUris, setSavedTrackUris] = useState<Set<string>>(new Set());
@@ -87,6 +94,11 @@ export function useTracklistPanel(
   // — covers stale fetches that resolve after the user navigated away and
   // back, which would otherwise pollute the new session.
   const likedSessionRef = useRef(0);
+  // Per-artist session cache + stale-guard. Keyed by artist id so re-opening the
+  // same artist is instant; the session ref discards a fetch whose artist has
+  // changed (the now-playing song — and thus the artist — can change mid-fetch).
+  const artistCacheRef = useRef<Record<string, ContextTrack[]>>({});
+  const artistSessionRef = useRef(0);
 
   useEffect(() => {
     panelViewRef.current = panelView;
@@ -101,8 +113,10 @@ export function useTracklistPanel(
   // because its state is stored separately.
   const tracksRef = useRef<ContextTrack[]>([]);
   const likedTracksRef = useRef<ContextTrack[]>([]);
+  const artistTracksRef = useRef<ContextTrack[]>([]);
   useEffect(() => { tracksRef.current = tracks; }, [tracks]);
   useEffect(() => { likedTracksRef.current = likedTracks; }, [likedTracks]);
+  useEffect(() => { artistTracksRef.current = artistTracks; }, [artistTracks]);
 
   const checkAndMergeSaved = useCallback(async (trackList: ContextTrack[]) => {
     if (trackList.length === 0) return;
@@ -413,6 +427,50 @@ export function useTracklistPanel(
     }
   }, [fetchLikedSongsPage]);
 
+  const showArtist = useCallback(async () => {
+    if (!currentArtistId) return;
+    const artistId = currentArtistId;
+    const session = ++artistSessionRef.current;
+    setPanelView('artist');
+    panelViewRef.current = 'artist';
+    setOverrideUri(null);
+    setOverrideType(null);
+    setIsOpen(true);
+
+    // Re-opening the same artist is instant from the per-session cache. These
+    // tracks are all liked-only, so seed savedTrackUris to render filled hearts.
+    const cached = artistCacheRef.current[artistId];
+    if (cached) {
+      setIsLoading(false);
+      setArtistTracks(cached);
+      setSavedTrackUris(prev => new Set([...prev, ...cached.map(t => t.uri)]));
+      return;
+    }
+
+    setArtistTracks([]);
+    setIsLoading(true);
+    try {
+      const result = await getLikedSongsByArtist(artistId);
+      if (session !== artistSessionRef.current) return; // artist changed mid-fetch
+      artistCacheRef.current[artistId] = result;
+      setArtistTracks(result);
+      setSavedTrackUris(prev => new Set([...prev, ...result.map(t => t.uri)]));
+    } catch (err) {
+      console.error('Failed to load liked songs by artist:', err);
+      if (session === artistSessionRef.current) setArtistTracks([]);
+    } finally {
+      if (session === artistSessionRef.current) setIsLoading(false);
+    }
+  }, [currentArtistId]);
+
+  // If the now-playing song (and thus its artist) changes while the Artist tab
+  // is open, refetch so the tab follows the current artist. Clicking the tab
+  // doesn't double-fire: currentArtistId is unchanged at that moment.
+  useEffect(() => {
+    if (panelViewRef.current !== 'artist') return;
+    showArtist();
+  }, [currentArtistId, showArtist]);
+
   const loadMoreLikedSongs = useCallback(async () => {
     if (panelViewRef.current !== 'liked') return;
     if (!likedHasMore || loadingMoreLikedRef.current) return;
@@ -459,6 +517,28 @@ export function useTracklistPanel(
         refetchPlaybackRef.current?.({ untilTrackChanges: true });
       } catch (err) {
         console.error('Failed to play liked song:', err);
+      }
+      return;
+    }
+    if (panelView === 'artist') {
+      // Liked-by-artist tracks span many albums with no shared Spotify context,
+      // so play them as a URI list (like Liked Songs) targeting the most-recent
+      // device for cold starts. No forced shuffle — this is a curated list the
+      // user is browsing in order.
+      setSelectedTrackUri(trackUri);
+      try {
+        const device = await getRecentDevice();
+        const allUris = artistTracksRef.current.map(t => t.uri);
+        const startIdx = Math.max(0, allUris.indexOf(trackUri));
+        const window = allUris.slice(startIdx, startIdx + 100);
+        if (window.length > 1) {
+          await playUriList(window, trackUri, device?.id);
+        } else {
+          await playTrackByUri(trackUri, device?.id);
+        }
+        refetchPlaybackRef.current?.({ untilTrackChanges: true });
+      } catch (err) {
+        console.error('Failed to play artist track:', err);
       }
       return;
     }
@@ -556,7 +636,7 @@ export function useTracklistPanel(
   return {
     isOpen,
     isLoading,
-    tracks: panelView === 'liked' ? likedTracks : tracks,
+    tracks: panelView === 'artist' ? artistTracks : panelView === 'liked' ? likedTracks : tracks,
     selectedTrackUri,
     panelView,
     isSupportedContext,
@@ -573,6 +653,7 @@ export function useTracklistPanel(
     showPlaylist,
     showQueue,
     showLikedSongs,
+    showArtist,
     loadMoreLikedSongs,
     addToQueue,
     saveTrack,

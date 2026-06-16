@@ -468,6 +468,163 @@ export async function saveTracksToLibrary(trackIds: string[]): Promise<void> {
   });
 }
 
+// --- Artist catalog: your liked songs by an artist ---
+
+// Carries artist IDs (unlike ContextTrack) so we can filter the catalog by the
+// artist and match "any appearance" (lead or featured) reliably.
+interface CandidateTrack {
+  id: string;
+  uri: string;
+  name: string;
+  artists: SpotifyArtist[];
+  duration_ms: number;
+}
+
+interface SpotifyArtistTopTracksResponse {
+  tracks: Array<{
+    id: string;
+    uri: string;
+    name: string;
+    artists: SpotifyArtist[];
+    duration_ms: number;
+  }>;
+}
+
+async function getArtistTopTracks(artistId: string): Promise<CandidateTrack[]> {
+  const data = await spotifyApiCall<SpotifyArtistTopTracksResponse>(
+    `artists/${encodeURIComponent(artistId)}/top-tracks?market=from_token`
+  );
+  return data.tracks.map(t => ({
+    id: t.id,
+    uri: t.uri,
+    name: t.name,
+    artists: t.artists,
+    duration_ms: t.duration_ms,
+  }));
+}
+
+interface SpotifyArtistAlbumsResponse {
+  items: Array<{ id: string }>;
+  next: string | null;
+}
+
+async function getArtistAlbumIds(artistId: string): Promise<string[]> {
+  const ids: string[] = [];
+  const seen = new Set<string>();
+  let path: string | null =
+    `artists/${encodeURIComponent(artistId)}/albums?include_groups=album,single,compilation,appears_on&limit=50&market=from_token`;
+  let pagesFetched = 0;
+  // Cap pages so hyper-prolific artists (or those who appear on countless
+  // compilations) don't trigger an unbounded burst of requests. 4 pages = <=200 albums.
+  const MAX_ARTIST_ALBUM_PAGES = 4;
+  while (path && pagesFetched < MAX_ARTIST_ALBUM_PAGES) {
+    const data: SpotifyArtistAlbumsResponse = await spotifyApiCall<SpotifyArtistAlbumsResponse>(path);
+    for (const a of data.items) {
+      if (!seen.has(a.id)) {
+        seen.add(a.id);
+        ids.push(a.id);
+      }
+    }
+    pagesFetched++;
+    path = data.next ? data.next.replace(`${SPOTIFY_API_BASE_URL}/`, '') : null;
+  }
+  return ids;
+}
+
+interface SpotifyAlbumsBatchResponse {
+  albums: Array<{
+    tracks: {
+      items: Array<{
+        id: string;
+        uri: string;
+        name: string;
+        artists: SpotifyArtist[];
+        duration_ms: number;
+      }>;
+    };
+  } | null>;
+}
+
+async function getAlbumsTracks(albumIds: string[]): Promise<CandidateTrack[]> {
+  const out: CandidateTrack[] = [];
+  // Spotify's GET /albums accepts up to 20 ids per request and returns each
+  // album's first 50 tracks inline (albums with >50 tracks are vanishingly rare
+  // and acceptable to truncate). Fetch batches with bounded concurrency.
+  const batches: string[][] = [];
+  for (let i = 0; i < albumIds.length; i += 20) batches.push(albumIds.slice(i, i + 20));
+  const CONCURRENCY = 3;
+  for (let i = 0; i < batches.length; i += CONCURRENCY) {
+    const results = await Promise.all(
+      batches.slice(i, i + CONCURRENCY).map(b =>
+        spotifyApiCall<SpotifyAlbumsBatchResponse>(`albums?ids=${b.join(',')}&market=from_token`)
+      )
+    );
+    for (const data of results) {
+      for (const album of data.albums) {
+        if (!album) continue;
+        for (const t of album.tracks.items) {
+          out.push({
+            id: t.id,
+            uri: t.uri,
+            name: t.name,
+            artists: t.artists,
+            duration_ms: t.duration_ms,
+          });
+        }
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Your liked songs by a given artist, computed WITHOUT scanning the whole
+ * library. We scan the artist's bounded catalog (top tracks + discography,
+ * including `appears_on` so features count) and ask Spotify which of those the
+ * user has saved. Cost scales with the artist's catalog, never the library.
+ * Caveat: only as complete as the catalog we pull, and capped for prolific
+ * artists — a liked deep-cut on an unrelated compilation we don't fetch may be
+ * missed.
+ */
+export async function getLikedSongsByArtist(artistId: string): Promise<ContextTrack[]> {
+  // Cap candidates so check-saved stays bounded (<=12 requests at 50/chunk).
+  const MAX_CANDIDATE_TRACKS = 600;
+
+  const [topTracks, albumIds] = await Promise.all([
+    getArtistTopTracks(artistId),
+    getArtistAlbumIds(artistId),
+  ]);
+  const albumTracks = await getAlbumsTracks(albumIds);
+
+  // Merge + dedupe by track id, keeping only tracks the artist actually appears
+  // on (album/appears_on groups also contain other artists' tracks), then cap.
+  const byId = new Map<string, CandidateTrack>();
+  for (const t of [...topTracks, ...albumTracks]) {
+    if (byId.has(t.id)) continue;
+    if (!t.artists.some(a => a.id === artistId)) continue;
+    byId.set(t.id, t);
+  }
+  const candidates = Array.from(byId.values()).slice(0, MAX_CANDIDATE_TRACKS);
+
+  // Keep only the ones the user has saved, checked in batches of 50 (Spotify's
+  // cap). checkSavedTracks returns booleans aligned to the input order.
+  const liked: CandidateTrack[] = [];
+  for (let i = 0; i < candidates.length; i += 50) {
+    const chunk = candidates.slice(i, i + 50);
+    const saved = await checkSavedTracks(chunk.map(t => t.id));
+    chunk.forEach((t, j) => { if (saved[j]) liked.push(t); });
+  }
+
+  // Running 1..N index for the track-number column (cross-album list, like Liked Songs).
+  return liked.map((t, i) => ({
+    uri: t.uri,
+    name: t.name,
+    artists: t.artists.map(a => a.name).join(', '),
+    track_number: i + 1,
+    duration_ms: t.duration_ms,
+  }));
+}
+
 export interface UserPlaylist {
   id: string;
   uri: string;

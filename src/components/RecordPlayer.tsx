@@ -36,13 +36,14 @@ interface RecordPlayerProps {
   albumTrackCount?: number;
   hasCurrentTrack?: boolean;
   onToggleTracklist?: () => void;
-  onCloseTracklist?: () => void;
   onSelectTrack?: (trackUri: string) => void;
   onShowAlbum?: () => void;
   onShowLibrary?: () => void;
   onShowPlaylist?: (playlistUri?: string) => void;
   onShowQueue?: () => void;
   onShowLikedSongs?: () => void;
+  onShowArtist?: () => void;
+  currentArtistName?: string | null;
   onLoadMoreLikedSongs?: () => void;
   isLoadingMoreLiked?: boolean;
   likedHasMore?: boolean;
@@ -94,13 +95,14 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
   albumTrackCount,
   hasCurrentTrack = false,
   onToggleTracklist,
-  onCloseTracklist,
   onSelectTrack,
   onShowAlbum,
   onShowLibrary,
   onShowPlaylist,
   onShowQueue,
   onShowLikedSongs,
+  onShowArtist,
+  currentArtistName,
   onLoadMoreLikedSongs,
   isLoadingMoreLiked = false,
   likedHasMore = false,
@@ -214,12 +216,13 @@ const RecordPlayer: React.FC<RecordPlayerProps> = ({
         albumTrackCount={albumTrackCount}
         hasCurrentTrack={hasCurrentTrack}
         onSelectTrack={onSelectTrack ?? (() => {})}
-        onClose={onCloseTracklist ?? (() => {})}
         onShowAlbum={onShowAlbum}
         onShowLibrary={onShowLibrary}
         onShowPlaylist={onShowPlaylist}
         onShowQueue={onShowQueue}
         onShowLikedSongs={onShowLikedSongs}
+        onShowArtist={onShowArtist}
+        currentArtistName={currentArtistName}
         onLoadMoreLikedSongs={onLoadMoreLikedSongs}
         isLoadingMoreLiked={isLoadingMoreLiked}
         likedHasMore={likedHasMore}

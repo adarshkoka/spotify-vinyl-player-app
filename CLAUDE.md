@@ -34,12 +34,13 @@ All state lives in hooks composed in `MainAppPage`:
 - **`useLyrics`** — Fetches time-synced lyrics from [LRCLIB](https://lrclib.net) and parses LRC format via `src/utils/lrcParser.ts`. Results are cached per-track to avoid refetching. LRCLIB data is **line-synced only** (no per-word timestamps).
 - **`useLyricsSettings`** — LocalStorage-backed toggle (`enabled`), position (`'flank'` = both sides of the jacket, `'right'` = jacket left-anchored and lyrics fill the right half), and `colorful` (the Colorful Lyrics karaoke mode — see below).
 - **`useTracklistPanel`** — The panel surface below the record player. Owns:
-  - The `panelView` tab state: `'album' | 'library' | 'playlist' | 'queue' | 'liked'`.
+  - The `panelView` tab state: `'album' | 'library' | 'playlist' | 'queue' | 'liked' | 'artist'`.
   - Per-context track fetching with a per-URI cache (album, playlist). Queue and Liked Songs are never cached.
   - Liked Songs infinite-scroll paging (50 at a time).
+  - The **Artist** view (`'artist'`): your liked songs by the *primary* artist (`track.artists[0]`) of the now-playing song. Backed by separate `artistTracks` state (isolated like `likedTracks` so async writes can't leak into another view), a per-artist session cache (`artistCacheRef`, keyed by artist id), and a session stale-guard (`artistSessionRef`) since the artist can change mid-fetch. `showArtist()` serves from cache or calls `getLikedSongsByArtist(artistId)`; an effect refetches when `currentArtistId` changes while the tab is open. Loaded tracks are merged into `savedTrackUris` so their hearts render filled. **Critically, this does NOT scan the user's library** (`/me/tracks` has no artist filter and can be 10K+ songs) — see Liked-Songs-by-Artist below.
   - User-owned playlists for the Library view, fetched once and cached in a ref.
   - An `overrideUri`/`overrideType` mechanism so picking a playlist from the Library temporarily shows that playlist's tracks; switching tabs clears the override so the Playlist tab always reflects the *currently playing* playlist.
-  - Track selection: routes through `playTrackInContext` / `playUriList` / `playTrackByUri` depending on view. When no Spotify device is active (typical on cold start), Liked Songs and album/playlist plays look up the most-recent device via `getRecentDevice()` and target it explicitly to avoid 404s.
+  - Track selection: routes through `playTrackInContext` / `playUriList` / `playTrackByUri` depending on view. When no Spotify device is active (typical on cold start), Liked Songs, Artist, and album/playlist plays look up the most-recent device via `getRecentDevice()` and target it explicitly to avoid 404s. The Artist view plays as a `playUriList` window (like Liked Songs, since its tracks span many albums with no shared context) but without forced shuffle.
 
 ### Album Jacket Interaction (`src/components/AlbumJacket.tsx`)
 
@@ -50,7 +51,18 @@ The album-art "jacket" is the affordance for opening the tracklist panel (`onTog
 
 ### Tracklist Panel UI (`src/components/TracklistPanel.tsx`)
 
-A persistent centered tab bar (Library · Album · Playlist · Liked Songs · Queue) sits at the top of the panel; the close button is absolutely positioned in the top-right. Tabs are conditionally hidden when they would be empty: Album requires a current track with a multi-track album, Playlist requires a playlist context, Queue requires a current track. Library renders a 3-column grid of playlist cards (square cover + name); clicking a card opens that playlist in the Playlist tab via the override mechanism. The Liked Songs view auto-opens on cold start when nothing is playing on the user's Spotify account, so the user can pick a song without leaving the app.
+A persistent centered tab bar (Library · {Artist} · Album · Playlist · Liked Songs · Queue) sits at the top of the panel. There is no close button — the panel is dismissed by clicking the album jacket again (toggle) or by clicking the background outside the player (`handleBackgroundClick` in `MainAppPage`, which no-ops while nothing is playing so the panel stays available as the only way to pick a song). Tabs are conditionally hidden when they would be empty: Artist requires a current track with a primary artist, Album requires a current track with a multi-track album, Playlist requires a playlist context, Queue requires a current track. The **Artist** tab is **labeled with the primary artist's name** (`currentArtistName` = `track.artists[0].name`, never featured artists); a long name is capped + ellipsized via `.tracklist-tab-artist` (`max-width` + `min-width:0` so the flex item shrinks), with the full name in the button's `title` tooltip and the whole bar scrolling (`.tracklist-tabs` `overflow-x`) as a last resort. It shows the empty state "No liked songs by {artist}" when none are found. Library renders a 3-column grid of playlist cards (square cover + name); clicking a card opens that playlist in the Playlist tab via the override mechanism. The Liked Songs view auto-opens on cold start when nothing is playing on the user's Spotify account, so the user can pick a song without leaving the app. The add-to-queue and like (♥) per-row buttons and the scroll-to-current-track effect are view-agnostic (the scroll effect only skips `'liked'`, whose active track is usually outside the loaded page), so the Artist view gets them for free.
+
+### Liked Songs by Artist (`src/services/spotifyService.ts`)
+
+`getLikedSongsByArtist(artistId)` computes "your liked songs by this artist" **without scanning the Liked Songs library**. Spotify has no server-side artist filter on `/me/tracks`, and a library can be 10K+ songs, so instead of scanning the (huge) library we scan the artist's **bounded catalog** and ask Spotify which of those are saved:
+
+1. `getArtistTopTracks` (`/artists/{id}/top-tracks`) + `getArtistAlbumIds` (`/artists/{id}/albums` with `include_groups=album,single,compilation,appears_on` — `appears_on` is what catches features), paginated up to `MAX_ARTIST_ALBUM_PAGES`.
+2. `getAlbumsTracks` batches album track listings via `/albums?ids=` (20/request, bounded concurrency).
+3. Merge + dedupe by track id, **filter by artist ID** (`artists.some(a => a.id === artistId)` — needed because `appears_on`/compilation albums contain *other* artists' tracks; matches the "any appearance: lead or featured" intent and is robust vs. name collisions), cap at `MAX_CANDIDATE_TRACKS`.
+4. `checkSavedTracks` (existing, `/me/tracks/contains`, 50 ids/request) in chunks; keep only saved tracks, returned as `ContextTrack[]` with a running 1..N `track_number`.
+
+Cost scales with the **artist's catalog**, never the library. Tradeoff: results are only as complete as the catalog we fetch (a liked deep-cut on an unrelated compilation we don't pull can be missed) and capped for hyper-prolific artists. Uses `market=from_token`; needs no new OAuth scope (`user-library-read`, already granted by Liked Songs, covers check-saved).
 
 ### Animation Timing (`src/config.ts`)
 

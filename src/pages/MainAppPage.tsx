@@ -47,7 +47,7 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
     else setArtArmEnabled(false);
     applyMaterialPreset(target, preset);
   };
-  const { isOpen: isTracklistOpen, isLoading: isTracklistLoading, tracks: tracklistTracks, selectedTrackUri, panelView, isSupportedContext, savedTrackUris, isLoadingMoreLiked, likedHasMore, libraryPlaylists, isLoadingLibrary, toggleOpen: toggleTracklist, close: closeTracklist, selectTrack, showAlbum, showLibrary, showPlaylist, showQueue, showLikedSongs, loadMoreLikedSongs, addToQueue, saveTrack } = useTracklistPanel(contextUri, contextType, track?.album ?? null, track?.uri, refetchPlayback);
+  const { isOpen: isTracklistOpen, isLoading: isTracklistLoading, tracks: tracklistTracks, selectedTrackUri, panelView, isSupportedContext, savedTrackUris, isLoadingMoreLiked, likedHasMore, libraryPlaylists, isLoadingLibrary, toggleOpen: toggleTracklist, close: closeTracklist, selectTrack, showAlbum, showLibrary, showPlaylist, showQueue, showLikedSongs, showArtist, loadMoreLikedSongs, addToQueue, saveTrack } = useTracklistPanel(contextUri, contextType, track?.album ?? null, track?.uri, refetchPlayback, track?.artists?.[0]?.id ?? null);
 
   const handleToggleTracklist = () => {
     skipToPlatter();
@@ -61,7 +61,7 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
   const handleBackgroundClick = (e: React.MouseEvent) => {
     if (!isTracklistOpen) return;
     // When nothing is playing the panel is the only way to pick a song, so it
-    // must stay open (mirrors the hidden close button in that state).
+    // must stay open.
     if (!track) return;
     if ((e.target as HTMLElement).closest('.record-player, .player-controls, .song-info, .bottom-bar')) return;
     closeTracklist();
@@ -186,13 +186,14 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
             albumTrackCount={track?.album?.total_tracks}
             hasCurrentTrack={!!track}
             onToggleTracklist={handleToggleTracklist}
-            onCloseTracklist={closeTracklist}
             onSelectTrack={selectTrack}
             onShowAlbum={() => { if (track?.album) showAlbum(track.album.id, track.album.uri); }}
             onShowLibrary={showLibrary}
             onShowPlaylist={showPlaylist}
             onShowQueue={showQueue}
             onShowLikedSongs={showLikedSongs}
+            onShowArtist={showArtist}
+            currentArtistName={track?.artists?.[0]?.name ?? null}
             onLoadMoreLikedSongs={loadMoreLikedSongs}
             isLoadingMoreLiked={isLoadingMoreLiked}
             likedHasMore={likedHasMore}

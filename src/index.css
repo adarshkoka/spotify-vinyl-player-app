@@ -692,6 +692,17 @@
   color: rgba(255, 255, 255, 0.95);
   border-bottom-color: rgba(255, 255, 255, 0.7);
 }
+/* The Artist tab is labeled with the (variable-length) artist name. Cap its
+   width and ellipsize so a long name always fits — the other tabs scoot over
+   (and the whole bar scrolls via .tracklist-tabs overflow-x as a last resort).
+   min-width:0 lets the flex item shrink below its content so the ellipsis can
+   actually kick in; the full name is available via the button's title tooltip. */
+.tracklist-tab-artist {
+  max-width: 110px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 /* Library view — empty / error state */
 .tracklist-library-placeholder {
@@ -772,31 +783,6 @@
   animation: tracklist-shimmer 1.4s ease-in-out infinite;
 }
 
-/* Close button — subtle circle, anchored to the top-right of the header so the
-   tab row can center within the panel without being shoved off-center by the
-   button's width. */
-.tracklist-close-btn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 16px;
-  height: 16px;
-  border: none;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.4);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: color 0.15s, background 0.15s;
-  padding: 0;
-  flex-shrink: 0;
-}
-.tracklist-close-btn:hover {
-  color: rgba(255, 255, 255, 0.8);
-  background: rgba(255, 255, 255, 0.12);
-}
 
 /* Scrollable track list */
 .tracklist-scroll {

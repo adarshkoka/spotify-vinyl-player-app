@@ -23,12 +23,13 @@ interface TracklistPanelProps {
   libraryPlaylists?: UserPlaylist[];
   isLoadingLibrary?: boolean;
   onSelectTrack: (trackUri: string) => void;
-  onClose: () => void;
   onShowAlbum?: () => void;
   onShowLibrary?: () => void;
   onShowPlaylist?: (playlistUri?: string) => void;
   onShowQueue?: () => void;
   onShowLikedSongs?: () => void;
+  onShowArtist?: () => void;
+  currentArtistName?: string | null;
   onLoadMoreLikedSongs?: () => void;
   onAddToQueue?: (trackUri: string) => Promise<void>;
   savedTrackUris?: Set<string>;
@@ -118,12 +119,13 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
   libraryPlaylists = [],
   isLoadingLibrary = false,
   onSelectTrack,
-  onClose,
   onShowAlbum,
   onShowLibrary,
   onShowPlaylist,
   onShowQueue,
   onShowLikedSongs,
+  onShowArtist,
+  currentArtistName,
   onLoadMoreLikedSongs,
   onAddToQueue,
   savedTrackUris,
@@ -136,6 +138,8 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
   const showPlaylistTab = isPlaylist;
   // Queue is meaningless when nothing is playing.
   const showQueueTab = hasCurrentTrack;
+  // Artist tab needs a now-playing artist to be about.
+  const showArtistTab = hasCurrentTrack && !!currentArtistName;
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -194,6 +198,16 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
             >
               Library
             </button>
+            {showArtistTab && (
+              <button
+                className={`tracklist-tab tracklist-tab-artist ${panelView === 'artist' ? 'tracklist-tab-active' : ''}`}
+                style={panelView === 'artist' ? { color: accentColor, borderBottomColor: accentColor } : undefined}
+                onClick={onShowArtist}
+                title={currentArtistName ?? undefined}
+              >
+                {currentArtistName}
+              </button>
+            )}
             {showAlbumTab && (
               <button
                 className={`tracklist-tab ${panelView === 'album' ? 'tracklist-tab-active' : ''}`}
@@ -229,17 +243,6 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
               </button>
             )}
           </div>
-
-          {/* Hide the close button when nothing is playing — closing the panel in
-              that state leaves the user with no way to pick a song (the jacket
-              affordance that reopens it isn't shown without a current track). */}
-          {hasCurrentTrack && (
-            <button className="tracklist-close-btn" onClick={onClose} aria-label="Close tracklist">
-              <svg width="8" height="8" viewBox="0 0 10 10" fill="none">
-                <path d="M2 2L8 8M8 2L2 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-          )}
         </div>
 
         {/* Track list (or Library grid) */}
@@ -281,6 +284,10 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
                 <div className="tracklist-skeleton-artist" />
               </div>
             ))
+          ) : panelView === 'artist' && tracks.length === 0 ? (
+            <div className="tracklist-library-placeholder">
+              No liked songs by {currentArtistName}
+            </div>
           ) : (
             tracks.map((t) => (
             <button
