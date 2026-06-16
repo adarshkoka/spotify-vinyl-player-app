@@ -1066,9 +1066,10 @@
   bottom: 0;
   display: flex;
   align-items: center;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--lyric-font-family, Arial, Helvetica, sans-serif);
   color: #ffffff;
-  font-size: 0.85rem;
+  font-size: var(--lyric-font-size, 14px);
+  font-weight: var(--lyric-font-weight, 400);
   line-height: 1.25;
   opacity: 0;
   transition: opacity 300ms ease;

@@ -98,16 +98,22 @@ export function extractColors(imageUrl: string): Promise<ExtractedColors> {
         .join(', ')})`;
       const busyDominant = toRgb(busyDarkened[0] ?? [34, 34, 34]);
 
-      // Colorful-lyrics palette: same clusters as the gradient, deduped for
-      // diversity and brightened so words stay legible on the dark overlay.
-      // Prefer saturated clusters (grays are weak word colors), but for a
-      // grayscale album — where no saturated clusters exist — fall back to the
-      // album's OWN grayscale tones rather than a generic rainbow, so the lyrics
-      // match the art (white/silver) instead of inventing colors.
+      // Colorful-lyrics palette, built from the same clusters as the gradient.
       const colorfulRaw = busyRaw.filter(c => saturation(c) >= 0.2);
-      const lyricSource = colorfulRaw.length ? colorfulRaw : busyRaw;
-      const lyricColors = selectDiverse(lyricSource, 5)
-        .map(c => toRgb(brighten(c, 150)));
+      let lyricColors: string[];
+      if (colorfulRaw.length) {
+        // Colorful album — vivid, deduped palette, brightened so the hues pop
+        // and stay legible on the dark overlay.
+        lyricColors = selectDiverse(colorfulRaw, 5).map(c => toRgb(brighten(c, 150)));
+      } else {
+        // Grayscale album — monochrome lyrics. Default to black to match the
+        // mostly-dark art, but if the whole cover is essentially black (even its
+        // lightest tone is near-black), the app background is black too, so use
+        // white instead — otherwise black-on-black lyrics would be invisible.
+        const maxBrightness = Math.max(...busyRaw.map(brightness));
+        const allBlack = maxBrightness < 70;
+        lyricColors = [allBlack ? '#ffffff' : '#000000'];
+      }
 
       resolve({
         dark: toRgb(colors[0]),

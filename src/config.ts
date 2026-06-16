@@ -39,7 +39,21 @@ export const LYRIC_WORD_FADE_DURATION = 250;
  * it's sung rather than after. Increase if words feel late, decrease (or go
  * negative) if they feel early. Reasonable range: 0–400.
  */
-export const LYRIC_WORD_LEAD_MS = 300;
+export const LYRIC_WORD_LEAD_MS = 400;
+
+// ─── Lyrics typography ──────────────────────────────────────────────────────
+
+/**
+ * Font family for the lyrics overlay. Any valid CSS `font-family` value
+ * (include fallbacks), e.g. `'Georgia, serif'` or `'"Courier New", monospace'`.
+ */
+export const LYRIC_FONT_FAMILY = 'Arial, Helvetica, sans-serif';
+
+/** Font size (px) for the lyrics overlay. */
+export const LYRIC_FONT_SIZE = 14;
+
+/** Whether the lyrics render bold. Works with whatever LYRIC_FONT_FAMILY is set. */
+export const LYRIC_BOLD = true;
 
 // ─── Playback polling ───────────────────────────────────────────────────────
 
@@ -123,6 +137,9 @@ export function applyCssVars(): void {
   root.style.setProperty('--eject-duration', `${EJECT_DURATION}ms`);
   root.style.setProperty('--jacket-hover-duration', `${JACKET_HOVER_DURATION}ms`);
   root.style.setProperty('--lyric-word-fade-duration', `${LYRIC_WORD_FADE_DURATION}ms`);
+  root.style.setProperty('--lyric-font-family', LYRIC_FONT_FAMILY);
+  root.style.setProperty('--lyric-font-size', `${LYRIC_FONT_SIZE}px`);
+  root.style.setProperty('--lyric-font-weight', LYRIC_BOLD ? '700' : '400');
   root.style.setProperty('--vinyl-spin-duration', `${VINYL_SPIN_DURATION}ms`);
   root.style.setProperty('--gradient-transition-duration', `${GRADIENT_TRANSITION_DURATION}ms`);
 
