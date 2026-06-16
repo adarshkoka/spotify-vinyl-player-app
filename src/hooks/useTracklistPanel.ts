@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   getAlbumTracks,
   getPlaylistTracks,
@@ -91,6 +91,9 @@ export function useTracklistPanel(
    *  can be prefetched in parallel with the (slow) play-confirmation. No-op
    *  when lyrics are disabled. */
   onSelectPrefetch?: (track: ContextTrack) => void,
+  /** Map of playlist URI -> last-played epoch-ms, used to sort the Library
+   *  grid most-recently-played first. */
+  playlistRecency?: Record<string, number>,
 ): UseTracklistPanelReturn {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -836,6 +839,22 @@ export function useTracklistPanel(
     };
   }, []);
 
+  // Sort the Library grid most-recently-played first. Playlists with a recorded
+  // play time lead (newest first); the rest keep Spotify's original library
+  // order behind them. Stable sort, derived so reopening reflects fresh recency.
+  const sortedLibraryPlaylists = useMemo(() => {
+    if (!playlistRecency) return libraryPlaylists;
+    return libraryPlaylists
+      .map((playlist, index) => ({ playlist, index }))
+      .sort((a, b) => {
+        const tsA = playlistRecency[a.playlist.uri] ?? 0;
+        const tsB = playlistRecency[b.playlist.uri] ?? 0;
+        if (tsA !== tsB) return tsB - tsA; // most recent first
+        return a.index - b.index; // otherwise preserve original order
+      })
+      .map(entry => entry.playlist);
+  }, [libraryPlaylists, playlistRecency]);
+
   return {
     isOpen,
     isLoading,
@@ -851,7 +870,7 @@ export function useTracklistPanel(
     savedTrackUris,
     isLoadingMoreLiked,
     likedHasMore,
-    libraryPlaylists,
+    libraryPlaylists: sortedLibraryPlaylists,
     isLoadingLibrary,
     toggleOpen,
     close,

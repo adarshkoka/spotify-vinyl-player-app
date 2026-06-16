@@ -9,6 +9,7 @@ import { getUpcomingTracks, type ContextTrack } from '../services/spotifyService
 import { useLyricsSettings } from '../hooks/useLyricsSettings';
 import { useHapticsSettings } from '../hooks/useHapticsSettings';
 import { useArtBaseSettings } from '../hooks/useArtBaseSettings';
+import { usePlaylistRecency } from '../hooks/usePlaylistRecency';
 import RoomScene from '../components/RoomScene';
 import RecordPlayer from '../components/RecordPlayer';
 import PlayerControls from '../components/PlayerControls';
@@ -30,6 +31,14 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
   const { enabled: hapticsEnabled, setEnabled: setHapticsEnabled } = useHapticsSettings();
   const { lines: lyricLines } = useLyrics(track, lyricsEnabled);
   const { baseEnabled: artBaseEnabled, armEnabled: artArmEnabled, setBaseEnabled: setArtBaseEnabled, setArmEnabled: setArtArmEnabled } = useArtBaseSettings();
+  const { recency: playlistRecency, recordPlay: recordPlaylistPlay } = usePlaylistRecency();
+
+  // Stamp a playlist's "last played" time whenever it becomes the active
+  // playback context, so the Library grid can sort by most-recently-played.
+  // Spotify has no recently-played-playlists API, so we cache it ourselves.
+  useEffect(() => {
+    if (contextType === 'playlist' && contextUri) recordPlaylistPlay(contextUri);
+  }, [contextUri, contextType, recordPlaylistPlay]);
 
   // Warm the lyrics cache for a track the user just picked, before Spotify even
   // confirms the play. Panel rows carry no album, so this resolves via /search.
@@ -65,7 +74,7 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
     else setArtArmEnabled(false);
     applyMaterialPreset(target, preset);
   };
-  const { isOpen: isTracklistOpen, isLoading: isTracklistLoading, tracks: tracklistTracks, artistTopTracks, isLoadingArtistSaved, artistSubsection, setArtistSubsection, prefetchArtist, selectedTrackUri, panelView, isContextPlaylistLarge, savedTrackUris, isLoadingMoreLiked, likedHasMore, libraryPlaylists, isLoadingLibrary, toggleOpen: toggleTracklist, close: closeTracklist, selectTrack, showAlbum, showLibrary, showPlaylist, showQueue, showLikedSongs, showArtist, loadMoreLikedSongs, addToQueue, saveTrack } = useTracklistPanel(contextUri, contextType, track?.album ?? null, track?.uri, refetchPlayback, track?.artists?.[0]?.id ?? null, prefetchSelectionLyrics);
+  const { isOpen: isTracklistOpen, isLoading: isTracklistLoading, tracks: tracklistTracks, artistTopTracks, isLoadingArtistSaved, artistSubsection, setArtistSubsection, prefetchArtist, selectedTrackUri, panelView, isContextPlaylistLarge, savedTrackUris, isLoadingMoreLiked, likedHasMore, libraryPlaylists, isLoadingLibrary, toggleOpen: toggleTracklist, close: closeTracklist, selectTrack, showAlbum, showLibrary, showPlaylist, showQueue, showLikedSongs, showArtist, loadMoreLikedSongs, addToQueue, saveTrack } = useTracklistPanel(contextUri, contextType, track?.album ?? null, track?.uri, refetchPlayback, track?.artists?.[0]?.id ?? null, prefetchSelectionLyrics, playlistRecency);
 
   const handleToggleTracklist = () => {
     skipToPlatter();

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import LoginPage from './pages/LoginPage';
 import MainAppPage from './pages/MainAppPage';
 
-const SCOPE_VERSION = 'v2';
+const SCOPE_VERSION = 'v3';
 
 // If scopes have changed since the user last authenticated, clear stored tokens
 // so they are redirected through the OAuth flow with the updated scope list.

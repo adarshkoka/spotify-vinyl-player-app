@@ -21,7 +21,7 @@ const LoginPage: React.FC = () => {
     localStorage.setItem('spotify_auth_state', state);
 
     const codeChallenge = await generateCodeChallenge(codeVerifier);
-    const scope = 'user-read-currently-playing user-read-playback-state user-modify-playback-state user-library-read user-library-modify';
+    const scope = 'user-read-currently-playing user-read-playback-state user-modify-playback-state user-library-read user-library-modify playlist-read-private playlist-read-collaborative';
 
     const authUrl = new URL("https://accounts.spotify.com/authorize");
     const params = {
