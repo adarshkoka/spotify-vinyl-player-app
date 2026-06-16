@@ -49,7 +49,7 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
     else setArtArmEnabled(false);
     applyMaterialPreset(target, preset);
   };
-  const { isOpen: isTracklistOpen, isLoading: isTracklistLoading, tracks: tracklistTracks, selectedTrackUri, panelView, isSupportedContext, savedTrackUris, isLoadingMoreLiked, likedHasMore, libraryPlaylists, isLoadingLibrary, toggleOpen: toggleTracklist, close: closeTracklist, selectTrack, showAlbum, showLibrary, showPlaylist, showQueue, showLikedSongs, showArtist, loadMoreLikedSongs, addToQueue, saveTrack } = useTracklistPanel(contextUri, contextType, track?.album ?? null, track?.uri, refetchPlayback, track?.artists?.[0]?.id ?? null);
+  const { isOpen: isTracklistOpen, isLoading: isTracklistLoading, tracks: tracklistTracks, selectedTrackUri, panelView, isContextPlaylistLarge, savedTrackUris, isLoadingMoreLiked, likedHasMore, libraryPlaylists, isLoadingLibrary, toggleOpen: toggleTracklist, close: closeTracklist, selectTrack, showAlbum, showLibrary, showPlaylist, showQueue, showLikedSongs, showArtist, loadMoreLikedSongs, addToQueue, saveTrack } = useTracklistPanel(contextUri, contextType, track?.album ?? null, track?.uri, refetchPlayback, track?.artists?.[0]?.id ?? null);
 
   const handleToggleTracklist = () => {
     skipToPlatter();
@@ -188,7 +188,7 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
             tracklistTracks={tracklistTracks}
             currentTrackUri={selectedTrackUri ?? track?.uri ?? null}
             panelView={panelView}
-            isPlaylist={isSupportedContext && contextType === 'playlist'}
+            isPlaylist={contextType === 'playlist' && !isContextPlaylistLarge}
             albumTrackCount={track?.album?.total_tracks}
             hasCurrentTrack={!!track}
             onToggleTracklist={handleToggleTracklist}

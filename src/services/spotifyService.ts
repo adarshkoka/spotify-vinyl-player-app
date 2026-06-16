@@ -254,6 +254,20 @@ export async function getAlbumTracks(albumId: string): Promise<ContextTrack[]> {
   }));
 }
 
+/**
+ * Cheap track-count lookup for a playlist. Asks Spotify for only `tracks.total`
+ * (no items), so we can decide whether a playlist is too large to load fully
+ * without paginating through it. "Liked Songs" played from Spotify reports a
+ * playlist-typed context that can hold 10K+ tracks — this lets the panel skip
+ * fetching it entirely. Returns 0 on any malformed response.
+ */
+export async function getPlaylistTrackCount(playlistId: string): Promise<number> {
+  const data = await spotifyApiCall<{ tracks: { total: number } }>(
+    `playlists/${encodeURIComponent(playlistId)}?fields=tracks.total`
+  );
+  return data.tracks?.total ?? 0;
+}
+
 export async function getPlaylistTracks(playlistId: string): Promise<ContextTrack[]> {
   // Spotify caps each page at 100 items, so page through `next` until exhausted
   // to load the full playlist (unlike Liked Songs, the panel shows all at once).

@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   getAlbumTracks,
   getPlaylistTracks,
+  getPlaylistTrackCount,
   getQueue,
   getLikedSongs,
   getLikedSongsByArtist,
@@ -22,13 +23,20 @@ export type PanelView = 'album' | 'library' | 'playlist' | 'queue' | 'liked' | '
 
 const LIKED_PAGE_SIZE = 50;
 
+// A playlist context larger than this is never loaded into the panel — fetching
+// every track would choke the UI (Spotify's "Liked Songs", played from a phone,
+// arrives as a playlist-typed context that can hold 10K+ tracks). The panel
+// defaults to the Library tab instead and the Playlist tab is hidden.
+const LARGE_PLAYLIST_THRESHOLD = 500;
+
 interface UseTracklistPanelReturn {
   isOpen: boolean;
   isLoading: boolean;
   tracks: ContextTrack[];
   selectedTrackUri: string | null;
   panelView: PanelView;
-  isSupportedContext: boolean;
+  /** True once the current playlist context is known to exceed LARGE_PLAYLIST_THRESHOLD. */
+  isContextPlaylistLarge: boolean;
   savedTrackUris: Set<string>;
   isLoadingMoreLiked: boolean;
   likedHasMore: boolean;
@@ -79,6 +87,8 @@ export function useTracklistPanel(
   const [isLoadingMoreLiked, setIsLoadingMoreLiked] = useState(false);
   const [libraryPlaylists, setLibraryPlaylists] = useState<UserPlaylist[]>([]);
   const [isLoadingLibrary, setIsLoadingLibrary] = useState(false);
+  // True once we learn the current playlist context exceeds LARGE_PLAYLIST_THRESHOLD.
+  const [isContextPlaylistLarge, setIsContextPlaylistLarge] = useState(false);
   const libraryFetchedRef = useRef(false);
   const panelViewRef = useRef<PanelView>('album');
   const queueRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -106,6 +116,10 @@ export function useTracklistPanel(
 
   // Cache tracks per contextUri (not used for queue — always fresh)
   const cacheRef = useRef<Record<string, ContextTrack[]>>({});
+  // Cache playlist track counts per uri so the size check costs one lightweight
+  // call per distinct playlist (shared by the context-size effect and the
+  // fetch-time guard below).
+  const playlistCountCacheRef = useRef<Record<string, number>>({});
   const refetchPlaybackRef = useRef(refetchPlayback);
   refetchPlaybackRef.current = refetchPlayback;
   // Mirror tracks to refs so selectTrack can read the latest URIs without
@@ -136,7 +150,59 @@ export function useTracklistPanel(
   // Whether the current context is fetchable (album or playlist)
   const isSupportedContext = contextType === 'album' || contextType === 'playlist';
 
-  const defaultView: PanelView = isSupportedContext && contextType === 'playlist' ? 'playlist' : 'album';
+  // A playlist context past the size threshold is treated as "too large to load".
+  // The panel defaults to Library instead of Playlist and never fetches its tracks.
+  const defaultView: PanelView =
+    contextType === 'playlist' && isContextPlaylistLarge ? 'library'
+    : contextType === 'playlist' ? 'playlist'
+    : 'album';
+
+  // When the playlist context changes, look up its track count (cheap, no items)
+  // to decide whether it's too large to load. Cached per uri so we ask once.
+  useEffect(() => {
+    if (contextType !== 'playlist' || !contextUri) {
+      setIsContextPlaylistLarge(false);
+      return;
+    }
+    const cached = playlistCountCacheRef.current[contextUri];
+    if (cached !== undefined) {
+      setIsContextPlaylistLarge(cached > LARGE_PLAYLIST_THRESHOLD);
+      return;
+    }
+    let cancelled = false;
+    const id = contextUri.split(':').pop()!;
+    getPlaylistTrackCount(id)
+      .then(count => {
+        playlistCountCacheRef.current[contextUri] = count;
+        if (!cancelled) setIsContextPlaylistLarge(count > LARGE_PLAYLIST_THRESHOLD);
+      })
+      .catch(() => { if (!cancelled) setIsContextPlaylistLarge(false); });
+    return () => { cancelled = true; };
+  }, [contextType, contextUri]);
+
+  const showLibrary = useCallback(() => {
+    setPanelView('library');
+    panelViewRef.current = 'library';
+    setOverrideUri(null);
+    setOverrideType(null);
+    // Library content (user-owned playlists) is rendered separately from the
+    // tracklist body — no track fetch here.
+    setTracks([]);
+    setIsOpen(true);
+    // Fetch the user's owned playlists on first open; subsequent opens reuse
+    // the cached list so the grid renders instantly.
+    if (!libraryFetchedRef.current) {
+      libraryFetchedRef.current = true;
+      setIsLoadingLibrary(true);
+      getUserPlaylists()
+        .then(setLibraryPlaylists)
+        .catch(err => {
+          console.error('Failed to fetch user playlists:', err);
+          libraryFetchedRef.current = false;
+        })
+        .finally(() => setIsLoadingLibrary(false));
+    }
+  }, []);
 
   const fetchTracksFor = useCallback(async (uri: string, type: string): Promise<ContextTrack[]> => {
     // Use cached if available
@@ -150,6 +216,21 @@ export function useTracklistPanel(
     try {
       const parts = uri.split(':');
       const id = parts[parts.length - 1];
+
+      // Hard safety net: never load an oversized playlist's tracks, regardless of
+      // which path reached here. Show the Library tab instead. The count is cached
+      // (the context-size effect usually populated it already), so this is cheap.
+      if (type === 'playlist') {
+        let count = playlistCountCacheRef.current[uri];
+        if (count === undefined) {
+          count = await getPlaylistTrackCount(id);
+          playlistCountCacheRef.current[uri] = count;
+        }
+        if (count > LARGE_PLAYLIST_THRESHOLD) {
+          showLibrary();
+          return [];
+        }
+      }
 
       let result: ContextTrack[] = [];
       if (type === 'album') {
@@ -190,7 +271,7 @@ export function useTracklistPanel(
       setTracks([]);
       return [];
     }
-  }, [fallbackAlbum, checkAndMergeSaved]);
+  }, [fallbackAlbum, checkAndMergeSaved, showLibrary]);
 
   const fetchQueueTracks = useCallback(async (): Promise<ContextTrack[]> => {
     try {
@@ -245,7 +326,7 @@ export function useTracklistPanel(
       // Don't yank the user out of views they explicitly navigated to.
       if (panelView !== 'queue' && panelView !== 'liked' && panelView !== 'library') {
         setPanelView(defaultView);
-        if (isOpen && effectiveUri) {
+        if (isOpen && effectiveUri && defaultView !== 'library') {
           const type = isSupportedContext ? contextType! : 'album';
           fetchTracksFor(effectiveUri, type);
         }
@@ -274,6 +355,12 @@ export function useTracklistPanel(
       setOverrideUri(null);
       setOverrideType(null);
     } else {
+      // Library default (oversized playlist context): open into the playlist grid,
+      // which has no body tracks — the track-fetch-then-gate path would never open it.
+      if (defaultView === 'library') {
+        showLibrary();
+        return;
+      }
       setPanelView(defaultView);
       panelViewRef.current = defaultView;
       setOverrideUri(null);
@@ -283,7 +370,7 @@ export function useTracklistPanel(
         setIsOpen(true);
       }
     }
-  }, [isOpen, fetchTracks, defaultView]);
+  }, [isOpen, fetchTracks, defaultView, showLibrary]);
 
   const close = useCallback(() => {
     if (queueRefreshTimerRef.current) {
@@ -311,30 +398,6 @@ export function useTracklistPanel(
       fetchTracksFor(albumUri, 'album');
     }
   }, [fetchTracksFor]);
-
-  const showLibrary = useCallback(() => {
-    setPanelView('library');
-    panelViewRef.current = 'library';
-    setOverrideUri(null);
-    setOverrideType(null);
-    // Library content (user-owned playlists) is rendered separately from the
-    // tracklist body — no track fetch here.
-    setTracks([]);
-    setIsOpen(true);
-    // Fetch the user's owned playlists on first open; subsequent opens reuse
-    // the cached list so the grid renders instantly.
-    if (!libraryFetchedRef.current) {
-      libraryFetchedRef.current = true;
-      setIsLoadingLibrary(true);
-      getUserPlaylists()
-        .then(setLibraryPlaylists)
-        .catch(err => {
-          console.error('Failed to fetch user playlists:', err);
-          libraryFetchedRef.current = false;
-        })
-        .finally(() => setIsLoadingLibrary(false));
-    }
-  }, []);
 
   const showPlaylist = useCallback((playlistUri?: string) => {
     setPanelView('playlist');
@@ -639,7 +702,7 @@ export function useTracklistPanel(
     tracks: panelView === 'artist' ? artistTracks : panelView === 'liked' ? likedTracks : tracks,
     selectedTrackUri,
     panelView,
-    isSupportedContext,
+    isContextPlaylistLarge,
     savedTrackUris,
     isLoadingMoreLiked,
     likedHasMore,

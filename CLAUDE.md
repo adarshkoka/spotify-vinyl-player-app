@@ -7,12 +7,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 npm run dev        # Dev server at http://127.0.0.1:5173
 npm run build      # TypeScript check + Vite production build
-npm run lint       # ESLint with TypeScript-aware rules
 npm run preview    # Preview the production build locally
 npm run deploy     # Build and push to GitHub Pages (gh-pages -d dist)
 ```
 
-No test suite is configured.
+No test suite is configured. **Do not run `npm run lint`** — the ESLint setup is currently broken (the `@typescript-eslint/no-unused-vars` rule fails to load with an `Invalid regular expression: /^\_/u` error before linting any file). Use `npm run build` to type-check changes instead.
 
 ## Architecture
 
