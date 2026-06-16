@@ -538,7 +538,7 @@
   overflow: hidden;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
   flex-shrink: 0;
-  transition: transform 0.15s ease, opacity 0.3s ease;
+  transition: transform var(--jacket-hover-duration, 200ms) ease-out, opacity 0.3s ease;
   pointer-events: auto;
 }
 
@@ -547,6 +547,24 @@
 }
 .jacket-clickable:active {
   transform: scale(0.95);
+}
+
+/* Hover pop-up — only on devices that truly hover, so taps don't stick. */
+@media (hover: hover) {
+  /* Lift toward the viewer with a deeper shadow. */
+  .jacket-clickable:not(.jacket-pressed):hover {
+    transform: translateY(-6px) scale(1.04);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.6);
+  }
+  /* Vinyl hint: slit widens as if a record could slide out. */
+  .jacket-clickable:not(.jacket-pressed):hover .jacket-slit {
+    width: 7px;
+    background: rgba(30, 30, 30, 0.8);
+  }
+  /* Press-down squash must out-specify the hover lift above. */
+  .jacket-clickable:not(.jacket-pressed):active {
+    transform: scale(0.96);
+  }
 }
 
 /* Pressed state when tracklist is open */

@@ -26,6 +26,9 @@ export const DISC_PLACE_DURATION = 1350;
 /** Quick fade when the current track is removed with no replacement. */
 export const EJECT_DURATION = 300;
 
+/** Jacket pop-up lift/squash transition on hover and press. */
+export const JACKET_HOVER_DURATION = 200;
+
 // ─── Playback polling ───────────────────────────────────────────────────────
 
 /**
@@ -106,6 +109,7 @@ export function applyCssVars(): void {
   root.style.setProperty('--disc-center-duration', `${DISC_CENTER_DURATION}ms`);
   root.style.setProperty('--disc-place-duration', `${DISC_PLACE_DURATION}ms`);
   root.style.setProperty('--eject-duration', `${EJECT_DURATION}ms`);
+  root.style.setProperty('--jacket-hover-duration', `${JACKET_HOVER_DURATION}ms`);
   root.style.setProperty('--vinyl-spin-duration', `${VINYL_SPIN_DURATION}ms`);
   root.style.setProperty('--gradient-transition-duration', `${GRADIENT_TRANSITION_DURATION}ms`);
 

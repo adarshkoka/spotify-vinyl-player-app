@@ -20,10 +20,19 @@ const AlbumJacket: React.FC<AlbumJacketProps> = ({
     onToggleOpen?.();
   };
 
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (!canOpen) return;
+    // Light haptic confirmation on touch taps (no-op on mouse / unsupported browsers like iOS Safari).
+    if (e.pointerType === 'touch' && typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      navigator.vibrate(10);
+    }
+  };
+
   return (
     <div
       className={`album-jacket ${className} ${canOpen ? 'jacket-clickable' : ''} ${isOpen ? 'jacket-pressed' : ''}`}
       onClick={handleClick}
+      onPointerDown={handlePointerDown}
     >
       {/* Album art face */}
       <div
