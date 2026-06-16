@@ -41,6 +41,13 @@ All state lives in hooks composed in `MainAppPage`:
   - An `overrideUri`/`overrideType` mechanism so picking a playlist from the Library temporarily shows that playlist's tracks; switching tabs clears the override so the Playlist tab always reflects the *currently playing* playlist.
   - Track selection: routes through `playTrackInContext` / `playUriList` / `playTrackByUri` depending on view. When no Spotify device is active (typical on cold start), Liked Songs and album/playlist plays look up the most-recent device via `getRecentDevice()` and target it explicitly to avoid 404s.
 
+### Album Jacket Interaction (`src/components/AlbumJacket.tsx`)
+
+The album-art "jacket" is the affordance for opening the tracklist panel (`onToggleOpen`), and it signals its clickability differently per input type:
+
+- **Desktop hover "pop-up":** scoped to `@media (hover: hover)` so taps don't leave a stuck hover state. On hover the jacket lifts (`translateY(-6px) scale(1.04)`) with a deeper shadow, and the right-edge `.jacket-slit` widens (4px → 7px) to hint that a record could slide out — reinforcing the vinyl-jacket metaphor. The `:active` press-squash is given matching specificity and placed after the hover rule so pressing still squashes; `:not(.jacket-pressed)` keeps the lift from fighting the open-panel state. The transform transition uses `--jacket-hover-duration` (from `JACKET_HOVER_DURATION` in `config.ts`).
+- **Mobile haptic:** an `onPointerDown` handler calls the native **Web Vibration API** (`navigator.vibrate(10)`) for a light tap — no library. It fires only when `pointerType === 'touch'` and is feature-guarded (`'vibrate' in navigator`), so mouse clicks and unsupported browsers (notably iOS Safari, which lacks the API entirely) are silent no-ops.
+
 ### Tracklist Panel UI (`src/components/TracklistPanel.tsx`)
 
 A persistent centered tab bar (Library · Album · Playlist · Liked Songs · Queue) sits at the top of the panel; the close button is absolutely positioned in the top-right. Tabs are conditionally hidden when they would be empty: Album requires a current track with a multi-track album, Playlist requires a playlist context, Queue requires a current track. Library renders a 3-column grid of playlist cards (square cover + name); clicking a card opens that playlist in the Playlist tab via the override mechanism. The Liked Songs view auto-opens on cold start when nothing is playing on the user's Spotify account, so the user can pick a song without leaving the app.

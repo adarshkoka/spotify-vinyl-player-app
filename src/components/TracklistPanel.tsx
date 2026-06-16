@@ -139,7 +139,10 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Scroll the active track into view whenever tracks finish loading or the panel opens
+  // Position the active track in view whenever tracks finish loading or the panel
+  // opens. We jump instantly (`behavior: 'auto'`) rather than smooth-scrolling so the
+  // panel simply appears already scrolled to the current song — the user doesn't have
+  // to watch the list travel.
   useEffect(() => {
     if (!isOpen || isLoading || !currentTrackUri || !scrollRef.current) return;
     // Skip auto-scroll while we're in the liked-songs view — the active track is
@@ -147,18 +150,18 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
     if (panelView === 'liked') return;
     const active = scrollRef.current.querySelector<HTMLElement>('.tracklist-item-active');
     if (active) {
-      active.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      active.scrollIntoView({ block: 'nearest', behavior: 'auto' });
     }
   }, [isOpen, isLoading, tracks, currentTrackUri, panelView]);
 
   // Reset the panel's scroll position to the top whenever the user enters the
-  // Liked Songs view. The scroll container is shared across panel tabs, so
-  // without this the previous tab's scroll offset is preserved — and when the
-  // new (much shorter) Liked content renders, the browser clamps scrollTop
-  // and fires a scroll event near the bottom, triggering a phantom load-more
-  // that races the initial fetch and duplicates the first page.
+  // Liked Songs or Library view. The scroll container is shared across panel tabs,
+  // so without this the previous tab's scroll offset is preserved — Library would
+  // open part-way down, and for Liked the browser clamps the stale scrollTop and
+  // fires a scroll event near the bottom, triggering a phantom load-more that
+  // races the initial fetch and duplicates the first page.
   useEffect(() => {
-    if (panelView === 'liked' && scrollRef.current) {
+    if ((panelView === 'liked' || panelView === 'library') && scrollRef.current) {
       scrollRef.current.scrollTop = 0;
     }
   }, [panelView]);
@@ -227,11 +230,16 @@ const TracklistPanel: React.FC<TracklistPanelProps> = ({
             )}
           </div>
 
-          <button className="tracklist-close-btn" onClick={onClose} aria-label="Close tracklist">
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-              <path d="M2 2L8 8M8 2L2 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
-          </button>
+          {/* Hide the close button when nothing is playing — closing the panel in
+              that state leaves the user with no way to pick a song (the jacket
+              affordance that reopens it isn't shown without a current track). */}
+          {hasCurrentTrack && (
+            <button className="tracklist-close-btn" onClick={onClose} aria-label="Close tracklist">
+              <svg width="8" height="8" viewBox="0 0 10 10" fill="none">
+                <path d="M2 2L8 8M8 2L2 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* Track list (or Library grid) */}

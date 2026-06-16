@@ -777,10 +777,10 @@
    button's width. */
 .tracklist-close-btn {
   position: absolute;
-  top: 5px;
+  top: 8px;
   right: 8px;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   border: none;
   background: rgba(255, 255, 255, 0.06);
   color: rgba(255, 255, 255, 0.4);

@@ -21,7 +21,7 @@ interface MainAppPageProps {
 
 const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
   const { track, isPlaying, isLoading, error, contextUri, contextType, progressMs, durationMs, togglePlayback, skipNext, skipBack, refetchPlayback } = useSpotifyPlayback({ pollInterval: SPOTIFY_POLL_INTERVAL });
-  const { stage, jacketTrack, discTrack, skipToPlatter } = useTrackTransition(track, isPlaying);
+  const { stage, jacketTrack, discTrack, skipToPlatter } = useTrackTransition(track, isPlaying, isLoading);
   const [gradientColors, setGradientColors] = useState<ExtractedColors>(DEFAULT_COLORS);
   const { baseBackground, baseColor, baseMaterial, tonearmColor, tonearmMaterial, baseFavorites, tonearmFavorites, setBaseColor, setTonearmColor, applyMaterialPreset, addFavorite } = usePlayerColors();
   const { enabled: lyricsEnabled, position: lyricsPosition, setEnabled: setLyricsEnabled, setPosition: setLyricsPosition } = useLyricsSettings();
@@ -45,6 +45,19 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
   const handleToggleTracklist = () => {
     skipToPlatter();
     toggleTracklist();
+  };
+
+  // A single click on the empty room background dismisses the tracklist panel.
+  // Clicks that land on an interactive surface (the player and its panel, the
+  // transport controls, the song info, or the settings bar) are ignored. The
+  // settings panel handles its own outside-click dismissal in ColorCustomizer.
+  const handleBackgroundClick = (e: React.MouseEvent) => {
+    if (!isTracklistOpen) return;
+    // When nothing is playing the panel is the only way to pick a song, so it
+    // must stay open (mirrors the hidden close button in that state).
+    if (!track) return;
+    if ((e.target as HTMLElement).closest('.record-player, .player-controls, .song-info, .bottom-bar')) return;
+    closeTracklist();
   };
 
   const canScrub = stage === 'playing' || stage === 'paused';
@@ -104,7 +117,7 @@ const MainAppPage: React.FC<MainAppPageProps> = ({ onLogout }) => {
   }, [isLoading, track, showLikedSongs]);
 
   return (
-    <RoomScene gradientColors={gradientColors} onDoubleClick={skipToPlatter}>
+    <RoomScene gradientColors={gradientColors} onDoubleClick={skipToPlatter} onClick={handleBackgroundClick}>
       <div className="bottom-bar">
         <ColorCustomizer
           baseColor={baseColor}

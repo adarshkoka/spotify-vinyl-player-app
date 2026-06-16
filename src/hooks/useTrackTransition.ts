@@ -32,7 +32,8 @@ interface UseTrackTransitionReturn {
 
 export function useTrackTransition(
   currentTrack: SpotifyTrack | null,
-  isPlaying: boolean
+  isPlaying: boolean,
+  isLoading: boolean
 ): UseTrackTransitionReturn {
   const [stage, setStage] = useState<TransitionStage>('empty');
   const [jacketTrack, setJacketTrack] = useState<SpotifyTrack | null>(null);
@@ -40,6 +41,10 @@ export function useTrackTransition(
 
   const loadedTrackIdRef = useRef<string | null>(null);
   const loadedAlbumUriRef = useRef<string | null>(null);
+  // True until the first track has been loaded. Lets us detect a "cold start"
+  // (the app opening with a track already on the user's account) so we can skip
+  // the entrance animation and show the disc already on the platter.
+  const hasLoadedOnceRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isPlayingRef = useRef(isPlaying);
   isPlayingRef.current = isPlaying;
@@ -86,6 +91,18 @@ export function useTrackTransition(
     // New track arriving
     loadedTrackIdRef.current = newTrackId;
 
+    // Cold start — the app just opened with a track already loaded on the user's
+    // account. Skip the jacket+disc entrance animation and drop the disc straight
+    // onto the platter so it appears already spinning (or resting, if paused).
+    if (!hasLoadedOnceRef.current) {
+      hasLoadedOnceRef.current = true;
+      loadedAlbumUriRef.current = currentTrack!.album.uri;
+      setJacketTrack(currentTrack!);
+      setDiscTrack(currentTrack!);
+      setStage(isPlaying ? 'playing' : 'paused');
+      return;
+    }
+
     // Same album — skip the full animation, just swap the track reference in place
     if (
       currentTrack!.album.uri === loadedAlbumUriRef.current &&
@@ -126,6 +143,17 @@ export function useTrackTransition(
     return () => clearTimer();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTrack?.id]);
+
+  // Close the cold-start window once the initial playback poll resolves with
+  // nothing playing. Without this, the first track the user manually picks would
+  // be mistaken for a cold start and skip its entrance animation. (When the first
+  // poll *does* return a track, the track-change effect above consumes the cold
+  // start in the same render, so this never fires for that case.)
+  useEffect(() => {
+    if (!isLoading && !currentTrack && !hasLoadedOnceRef.current) {
+      hasLoadedOnceRef.current = true;
+    }
+  }, [isLoading, currentTrack]);
 
   // React to isPlaying changes when settled on the platter
   useEffect(() => {
